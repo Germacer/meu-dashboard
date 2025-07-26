@@ -1,0 +1,655 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dashboard Responsivo com Status de Sensores</title>
+    <style>
+        body {
+            margin: 0;
+            font-family: Arial, sans-serif;
+            overflow: hidden; /* Controlado por rolagem nas colunas */
+            height: 100vh;
+            display: flex;
+        }
+
+        .main-container {
+            display: flex;
+            flex-direction: row; /* Padrão para desktop: colunas lado a lado */
+            width: 100%;
+            height: 100%;
+        }
+
+        .left-column {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            overflow-y: auto; /* Permite rolagem se o conteúdo for muito grande */
+        }
+
+        .right-column {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            justify-content: flex-start;
+            align-items: center;
+            background-color: #007bff;
+            padding: 20px;
+            box-sizing: border-box;
+            color: white;
+            overflow-y: auto; /* Permite rolagem se o conteúdo for muito grande */
+        }
+
+        .screen {
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            padding: 20px;
+            box-sizing: border-box;
+            text-align: center;
+            color: white;
+            font-size: 1.5em;
+            font-weight: bold;
+        }
+
+        /* Estilos para a Tela Superior Esquerda */
+        #top-left-screen {
+            flex: 1;
+            background-color: white;
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            grid-template-rows: repeat(2, 1fr);
+            gap: 1px;
+            padding: 1px;
+        }
+
+        /* Estilo base para todos os botões na tela superior esquerda */
+        .button-part {
+            background-color: #393939;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            cursor: pointer;
+            transition: background-color 0.3s ease, transform 0.1s ease;
+            border-radius: 0px;
+            font-size: 12px;
+            font-weight: bold;
+            color: white;
+            border: 0px solid transparent;
+            width: 100%;
+            height: 100%;
+            margin: 0px;
+            padding: 0px;
+            text-align: center; /* Garante que o texto dos botões esteja centralizado */
+        }
+
+        /* Efeito de hover para todos os botões */
+        .button-part:hover {
+            background-color: #555;
+        }
+
+        /* Estilo para o botão ATIVADO */
+        .button-part.active {
+            background-color: #32CD32;
+            color: #fff;
+            border: 0px solid #28a745;
+        }
+
+        /* Estilo específico para o botão "ALERTA" quando ativo (amarelo) */
+        .button-part.btn-7.active { background-color: #fbff00; color: #333; }
+
+
+        #bottom-left-screen {
+            flex: 1;
+            background-color: #3b3a63;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            padding: 10px;
+        }
+
+        #bottom-left-screen h4 {
+            margin-bottom: 5px;
+        }
+
+        #bottom-left-screen p {
+            font-size: 12px;
+            margin: 2px 0;
+            font-weight: normal;
+        }
+
+        /* Estilos para o status ATIVADO/DESATIVADO */
+        .status-active {
+            color: #32CD32;
+            font-weight: bold;
+        }
+
+        .status-inactive {
+            color: #ff4d4d;
+            font-weight: bold;
+        }
+
+        .status-unknown {
+            color: #f39c12;
+            font-weight: bold;
+        }
+
+        /* --- Estilos do Velocímetro Digital --- */
+        .digital-velocimeter {
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            background-color: #222;
+            border-radius: 10px;
+            padding: 20px 30px;
+            margin-top: 20px;
+            margin-bottom: 20px;
+            box-shadow: 0 0 15px rgba(0, 0, 0, 0.7);
+            width: 80%;
+            max-width: 300px;
+            position: relative;
+        }
+
+        .digital-speed-value {
+            font-family: 'Digital-7', monospace;
+            font-size: 4.5em;
+            color: #32CD32;
+            text-shadow: 0 0 10px rgba(50, 205, 50, 0.8);
+            margin: 0;
+            line-height: 1em;
+        }
+
+        .digital-units {
+            font-size: 1.3em;
+            color: #eee;
+            margin-top: 5px;
+        }
+
+        .digital-label {
+            font-size: 0.9em;
+            color: #aaa;
+            margin-bottom: 10px;
+            text-transform: uppercase;
+        }
+
+        .velocimeter-message, .location-message, .weather-message {
+            font-size: 0.9em;
+            color: #aaa;
+            text-align: center;
+            margin-top: 5px;
+            padding: 0 10px;
+        }
+
+        .error {
+            color: #ff4d4d;
+            font-weight: bold;
+        }
+
+        /* --- Estilos para Localização e Clima --- */
+        .info-card {
+            background-color: #2c3e50;
+            border-radius: 8px;
+            padding: 15px;
+            margin-top: 15px;
+            width: 80%;
+            max-width: 300px;
+            text-align: center;
+            box-shadow: 0 0 10px rgba(0, 0, 0, 0.5);
+        }
+
+        .info-card h3 {
+            margin-top: 0;
+            margin-bottom: 10px;
+            color: #f1c40f;
+            font-size: 1.3em;
+        }
+
+        .info-card p {
+            margin: 5px 0;
+            font-size: 1em;
+            color: #ecf0f1;
+        }
+
+        .weather-info img {
+            vertical-align: middle;
+            margin-right: 5px;
+            width: 40px;
+            height: 40px;
+        }
+
+        .weather-temp {
+            font-size: 1.8em;
+            font-weight: bold;
+            color: #3498db;
+        }
+
+        .weather-desc {
+            font-size: 1em;
+            text-transform: capitalize;
+        }
+
+        .loading-text {
+            color: #f39c12;
+        }
+
+        /* --- Estilos do Alerta de Velocidade --- */
+        #speed-alert-light {
+            width: 20px;
+            height: 20px;
+            background-color: #888;
+            border-radius: 50%;
+            position: absolute;
+            top: 10px;
+            right: 10px;
+            box-shadow: 0 0 5px rgba(0, 0, 0, 0.5);
+            transition: background-color 0.1s ease-in-out;
+        }
+
+        /* Animação de piscar */
+        @keyframes blink {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0; }
+        }
+
+        /* Classe para ativar a luz e a animação */
+        #speed-alert-light.active {
+            background-color: #ff0000;
+            box-shadow: 0 0 15px #ff0000, 0 0 30px #ff0000;
+            animation: blink 0.7s infinite alternate;
+        }
+
+        /* ======================================= */
+        /* --- Media Queries para Responsividade --- */
+        /* ======================================= */
+
+        /* Para telas menores que 768px (tablets em retrato e celulares) */
+        @media (max-width: 768px) {
+            .main-container {
+                flex-direction: column; /* Empilha as colunas verticalmente */
+            }
+
+            .left-column, .right-column {
+                width: 100%; /* Ocupam a largura total */
+                height: auto; /* Altura flexível */
+                min-height: 50vh; /* Pelo menos metade da tela */
+            }
+
+            /* Ajustes para a tela de botões */
+            #top-left-screen {
+                grid-template-columns: repeat(2, 1fr); /* 2 colunas para botões em telas pequenas */
+                font-size: 1em; /* Reduz o tamanho da fonte dos botões */
+                padding: 5px; /* Reduz padding */
+            }
+
+            .button-part {
+                font-size: 10px; /* Fonte ainda menor para caber melhor */
+                padding: 10px 5px; /* Adiciona um pouco mais de padding nos botões */
+            }
+
+            /* Ajustes para a bottom-left-screen */
+            #bottom-left-screen {
+                padding: 5px; /* Reduz padding */
+                font-size: 1em;
+            }
+            #bottom-left-screen h4 {
+                font-size: 1.2em; /* Reduz o título */
+            }
+            #bottom-left-screen p {
+                font-size: 0.9em; /* Reduz o texto de status */
+            }
+
+
+            /* Ajustes para o Velocímetro Digital */
+            .digital-velocimeter {
+                margin-top: 10px; /* Reduz margem superior */
+                margin-bottom: 10px; /* Reduz margem inferior */
+                padding: 15px 20px; /* Reduz padding */
+                width: 90%; /* Ocupa mais largura em telas pequenas */
+                max-width: unset; /* Remove o limite máximo de largura */
+            }
+
+            .digital-speed-value {
+                font-size: 3.5em; /* Reduz o tamanho da fonte da velocidade */
+            }
+
+            .digital-units {
+                font-size: 1.1em; /* Reduz o tamanho da fonte das unidades */
+            }
+
+            .digital-label {
+                font-size: 0.8em; /* Reduz o tamanho da fonte do label */
+            }
+
+            /* Ajustes para os Cards de Informação (Localização e Clima) */
+            .info-card {
+                margin-top: 10px; /* Reduz margem superior */
+                padding: 10px; /* Reduz padding */
+                width: 90%; /* Ocupa mais largura em telas pequenas */
+                max-width: unset; /* Remove o limite máximo de largura */
+            }
+
+            .info-card h3 {
+                font-size: 1.1em; /* Reduz o título do card */
+            }
+
+            .info-card p {
+                font-size: 0.9em; /* Reduz o texto do card */
+            }
+
+            .weather-temp {
+                font-size: 1.5em; /* Reduz a temperatura */
+            }
+
+            .weather-info img {
+                width: 30px; /* Reduz o ícone do clima */
+                height: 30px;
+            }
+
+            .velocimeter-message, .location-message, .weather-message {
+                font-size: 0.8em; /* Reduz mensagens de status */
+                margin-top: 2px;
+            }
+
+            #speed-alert-light {
+                width: 15px; /* Reduz o tamanho da luz de alerta */
+                height: 15px;
+                top: 5px; /* Ajusta posição */
+                right: 5px;
+            }
+        }
+
+        /* Para telas ainda menores (celulares em retrato) */
+        @media (max-width: 480px) {
+            #top-left-screen {
+                grid-template-columns: repeat(2, 1fr); /* Mantém 2 colunas */
+            }
+            .button-part {
+                font-size: 9px; /* Mais ajustes de fonte para botões */
+                padding: 8px 3px;
+            }
+
+            .digital-speed-value {
+                font-size: 3em; /* Mais ajuste para velocidade */
+            }
+        }
+
+    </style>
+</head>
+<body>
+
+    <div class="main-container">
+        <div class="left-column">
+            <div id="top-left-screen" class="screen">
+                </div>
+            <div id="bottom-left-screen" class="screen">
+                <p>Localização: <span id="locationStatusText" class="status-unknown">Verificando...</span></p>
+                <p>Bluetooth: <span id="bluetoothStatusText" class="status-unknown">Verificando...</span></p>
+               
+            </div>
+        </div>
+
+        <div class="right-column">
+            <div class="digital-velocimeter">
+                <div class="digital-label">Velocidade</div>
+                <div class="digital-speed-value" id="speedDisplay">0</div>
+                <div class="digital-units">km/h</div>
+                <div id="speed-alert-light"></div>
+            </div>
+
+            <p class="velocimeter-message" id="velocityMessage">Aguardando dados de velocidade...</p>
+
+            <div class="info-card">
+                <h3>Minha Localização</h3>
+                <p>Latitude: <span id="latitudeDisplay" class="loading-text">Carregando...</span></p>
+                <p>Longitude: <span id="longitudeDisplay" class="loading-text">Carregando...</span></p>
+                <p class="location-message" id="locationCoordStatus">Obtendo coordenadas...</p>
+            </div>
+
+            <div class="info-card">
+                <h3>Clima Atual</h3>
+                <p id="weatherCity" class="loading-text">Carregando cidade...</p>
+                <p class="weather-info">
+                    <span id="weatherIcon"></span>
+                    <span id="weatherTemp" class="weather-temp loading-text">--°C</span>
+                </p>
+                <p id="weatherDescription" class="weather-desc loading-text">Carregando...</p>
+                <p class="weather-message" id="weatherStatus">Buscando informações do clima...</p>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            // --- Variáveis para a API do OpenWeatherMap ---
+            // Substitua 'SUA_API_KEY_AQUI' pela sua chave da OpenWeatherMap!
+            const OPENWEATHER_API_KEY = 'SUA_API_KEY_AQUI'; 
+            const WEATHER_UNIT = 'metric'; // 'metric' para Celsius, 'imperial' para Fahrenheit
+
+            // --- Elementos HTML para o Velocímetro ---
+            const speedDisplay = document.getElementById('speedDisplay');
+            const velocityMessage = document.getElementById('velocityMessage');
+            const speedAlertLight = document.getElementById('speed-alert-light');
+
+            // --- Elementos HTML para Localização no Card de Coordenadas ---
+            const latitudeDisplay = document.getElementById('latitudeDisplay');
+            const longitudeDisplay = document.getElementById('longitudeDisplay');
+            const locationCoordStatus = document.getElementById('locationCoordStatus');
+
+            // --- Elementos HTML para o Clima ---
+            const weatherCity = document.getElementById('weatherCity');
+            const weatherIcon = document.getElementById('weatherIcon');
+            const weatherTemp = document.getElementById('weatherTemp');
+            const weatherDescription = document.getElementById('weatherDescription');
+            const weatherStatus = document.getElementById('weatherStatus');
+
+            // --- Elementos HTML para o Status de Localização e Bluetooth na bottom-left-screen ---
+            const locationStatusText = document.getElementById('locationStatusText');
+            const bluetoothStatusText = document.getElementById('bluetoothStatusText');
+
+
+            // --- Script para os Botões da Tela Superior Esquerda ---
+            const topLeftScreen = document.getElementById('top-left-screen');
+            const buttonNames = [
+                "FR BAIXO",
+                "FR ALTO",
+                "LZ INTERNAS",
+                "TRAVAR PORTAS",
+                "A01",
+                "LIGAR SOM",
+                "ALERTA",
+                "MENU"
+            ];
+
+            for (let i = 0; i < buttonNames.length; i++) {
+                const button = document.createElement('div');
+                button.classList.add('button-part', `btn-${i + 1}`);
+                button.textContent = buttonNames[i];
+                topLeftScreen.appendChild(button);
+
+                button.addEventListener('click', () => {
+                    button.classList.toggle('active');
+                });
+            }
+
+            // --- Funções do Velocímetro e Alerta de Velocidade ---
+            const SPEED_LIMIT = 60; // Limite de velocidade para o alerta em km/h
+
+            function updateVelocimeter(speed) {
+                speedDisplay.textContent = Math.round(speed);
+
+                if (speed > SPEED_LIMIT) {
+                    speedAlertLight.classList.add('active');
+                } else {
+                    speedAlertLight.classList.remove('active');
+                }
+            }
+
+            // --- Funções da Localização e Clima ---
+            let lastLatitude = null;
+            let lastLongitude = null;
+            const COORDS_UPDATE_THRESHOLD = 0.0001; // Limiar para chamar a API de clima novamente (em graus)
+
+            async function fetchWeatherData(latitude, longitude) {
+                if (!OPENWEATHER_API_KEY || OPENWEATHER_API_KEY === 'SUA_API_KEY_AQUI') {
+                    weatherStatus.textContent = "Erro: Chave de API do OpenWeatherMap não configurada.";
+                    weatherStatus.classList.add('error');
+                    return;
+                }
+
+                weatherStatus.textContent = "Buscando informações do clima...";
+                weatherStatus.classList.remove('error');
+
+                const apiUrl = `https://api.openweathermap.org/data/2.5/weather?lat=${latitude}&lon=${longitude}&appid=${OPENWEATHER_API_KEY}&units=${WEATHER_UNIT}&lang=pt_br`;
+
+                try {
+                    const response = await fetch(apiUrl);
+                    if (!response.ok) {
+                        throw new Error(`HTTP error! status: ${response.status}`);
+                    }
+                    const data = await response.json();
+
+                    weatherCity.textContent = data.name;
+                    weatherTemp.textContent = `${Math.round(data.main.temp)}°C`;
+                    weatherDescription.textContent = data.weather[0].description;
+                    weatherIcon.innerHTML = `<img src="https://openweathermap.org/img/wn/${data.weather[0].icon}.png" alt="${data.weather[0].description}">`;
+                    weatherStatus.textContent = "Clima atualizado.";
+                    weatherStatus.classList.remove('error');
+
+                } catch (error) {
+                    console.error('Erro ao buscar dados do clima:', error);
+                    weatherCity.textContent = 'Não disponível';
+                    weatherTemp.textContent = '--°C';
+                    weatherDescription.textContent = 'Erro ao carregar';
+                    weatherIcon.innerHTML = '';
+                    weatherStatus.textContent = `Erro ao carregar clima: ${error.message}`;
+                    weatherStatus.classList.add('error');
+                }
+            }
+
+            // --- Função para atualizar o status de Localização na bottom-left-screen ---
+            function updateLocationStatusText(isActive) {
+                if (isActive) {
+                    locationStatusText.textContent = "ATIVADO";
+                    locationStatusText.className = 'status-active';
+                } else {
+                    locationStatusText.textContent = "DESATIVADO";
+                    locationStatusText.className = 'status-inactive';
+                }
+            }
+
+            // --- Função para verificar e atualizar o status do Bluetooth ---
+            function checkBluetoothStatus() {
+                if (navigator.bluetooth) {
+                    bluetoothStatusText.textContent = "DISPONÍVEL";
+                    bluetoothStatusText.className = 'status-active';
+                } else {
+                    bluetoothStatusText.textContent = "NÃO SUPORTADO";
+                    bluetoothStatusText.className = 'status-inactive';
+                }
+            }
+
+
+            function successCallback(position) {
+                // Atualiza o Velocímetro e Alerta
+                let speedMetersPerSecond = position.coords.speed;
+                if (speedMetersPerSecond === null || speedMetersPerSecond < 0) {
+                    speedMetersPerSecond = 0;
+                    velocityMessage.textContent = "Sem movimento ou dados de velocidade não disponíveis.";
+                } else {
+                    velocityMessage.textContent = "Dados de velocidade recebidos.";
+                }
+                const speedKmH = speedMetersPerSecond * 3.6;
+                updateVelocimeter(speedKmH);
+
+                // Atualiza a Localização no Card de Coordenadas
+                const latitude = position.coords.latitude;
+                const longitude = position.coords.longitude;
+                latitudeDisplay.textContent = latitude.toFixed(6);
+                longitudeDisplay.textContent = longitude.toFixed(6);
+                locationCoordStatus.textContent = "Coordenadas atualizadas.";
+                locationCoordStatus.classList.remove('error');
+
+                // Atualiza o status de Localização na bottom-left-screen para ATIVADO
+                updateLocationStatusText(true);
+
+                // Verifica se a localização mudou o suficiente para atualizar o clima
+                if (lastLatitude === null ||
+                    Math.abs(latitude - lastLatitude) > COORDS_UPDATE_THRESHOLD ||
+                    Math.abs(longitude - lastLongitude) > COORDS_UPDATE_THRESHOLD) {
+                    
+                    fetchWeatherData(latitude, longitude);
+                    lastLatitude = latitude;
+                    lastLongitude = longitude;
+                }
+            }
+
+            function errorCallback(error) {
+                let errorMessage = "Erro ao obter localização: ";
+                switch (error.code) {
+                    case error.PERMISSION_DENIED:
+                        errorMessage += "Permissão negada. Por favor, permita o acesso à localização.";
+                        updateLocationStatusText(false);
+                        break;
+                    case error.POSITION_UNAVAILABLE:
+                        errorMessage += "Localização indisponível. Verifique suas configurações de GPS.";
+                        updateLocationStatusText(false);
+                        break;
+                    case error.TIMEOUT:
+                        errorMessage += "Tempo limite excedido ao tentar obter a localização.";
+                        updateLocationStatusText(false);
+                        break;
+                    case error.UNKNOWN_ERROR:
+                        errorMessage += "Erro desconhecido.";
+                        updateLocationStatusText(false);
+                        break;
+                }
+                velocityMessage.textContent = errorMessage;
+                velocityMessage.classList.add('error');
+                locationCoordStatus.textContent = errorMessage;
+                locationCoordStatus.classList.add('error');
+                weatherStatus.textContent = `Não foi possível carregar o clima: ${errorMessage}`;
+                weatherStatus.classList.add('error');
+                updateVelocimeter(0);
+                latitudeDisplay.textContent = 'N/A';
+                longitudeDisplay.textContent = 'N/A';
+                weatherCity.textContent = 'N/A';
+                weatherTemp.textContent = '--°C';
+                weatherDescription.textContent = 'N/A';
+                weatherIcon.innerHTML = '';
+                speedAlertLight.classList.remove('active');
+            }
+
+            // Opções para a observação da localização
+            const watchOptions = {
+                enableHighAccuracy: true,
+                timeout: 10000,
+                maximumAge: 0
+            };
+
+            // Inicia a observação da localização
+            if (navigator.geolocation) {
+                navigator.geolocation.watchPosition(successCallback, errorCallback, watchOptions);
+                velocityMessage.textContent = "Iniciando busca por velocidade...";
+                locationCoordStatus.textContent = "Iniciando busca por coordenadas...";
+                locationStatusText.textContent = "Verificando...";
+                locationStatusText.className = 'status-unknown';
+            } else {
+                const noGeoMessage = "Seu navegador não suporta Geolocalização.";
+                velocityMessage.textContent = noGeoMessage;
+                locationCoordStatus.textContent = noGeoMessage;
+                weatherStatus.textContent = noGeoMessage;
+                velocityMessage.classList.add('error');
+                locationCoordStatus.classList.add('error');
+                weatherStatus.classList.add('error');
+                updateLocationStatusText(false);
+            }
+
+            // Verifica o status do Bluetooth ao carregar a página
+            checkBluetoothStatus();
+        });
+    </script>
+</body>
+</html>
