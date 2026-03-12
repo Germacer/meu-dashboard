@@ -1,655 +1,280 @@
 <!DOCTYPE html>
-<html lang="pt-BR">
+<html lang="pt-br">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Dashboard Responsivo com Status de Sensores</title>
+    <title>GERMACER - Quantum HUD</title>
     <style>
-        body {
-            margin: 0;
-            font-family: Arial, sans-serif;
-            overflow: hidden; /* Controlado por rolagem nas colunas */
-            height: 100vh;
-            display: flex;
+        :root {
+            --bg-dark: #020205;
+            --neon-blue: #00d2ff;
+            --neon-red: #ff0044;
+            --neon-green: #00ff88;
+            --neon-yellow: #ffff00;
+            --font-main: 'Orbitron', sans-serif;
         }
 
-        .main-container {
-            display: flex;
-            flex-direction: row; /* Padrão para desktop: colunas lado a lado */
-            width: 100%;
-            height: 100%;
+        body, html {
+            margin: 0; padding: 0; width: 100%; height: 100%;
+            background-color: var(--bg-dark); color: white;
+            font-family: var(--font-main); overflow: hidden;
         }
 
-        .left-column {
-            flex: 1;
-            display: flex;
-            flex-direction: column;
-            overflow-y: auto; /* Permite rolagem se o conteúdo for muito grande */
+        /* --- SPLASH SCREEN --- */
+        #splash-screen {
+            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+            background: black; z-index: 1000; display: flex; flex-direction: column;
+            justify-content: center; align-items: center; transition: opacity 0.8s ease;
         }
 
-        .right-column {
-            flex: 1;
-            display: flex;
-            flex-direction: column;
-            justify-content: flex-start;
-            align-items: center;
-            background-color: #007bff;
-            padding: 20px;
-            box-sizing: border-box;
-            color: white;
-            overflow-y: auto; /* Permite rolagem se o conteúdo for muito grande */
+        #splash-screen h1 {
+            color: var(--neon-yellow); font-size: 5rem; margin: 0;
+            letter-spacing: 15px; text-shadow: 0 0 20px rgba(255, 255, 0, 0.5);
         }
 
-        .screen {
-            display: flex;
-            flex-direction: column;
-            justify-content: center;
-            align-items: center;
-            padding: 20px;
-            box-sizing: border-box;
-            text-align: center;
-            color: white;
-            font-size: 1.5em;
-            font-weight: bold;
+        #start-trigger {
+            margin-top: 30px; font-size: 1.2rem; color: white; cursor: pointer;
+            letter-spacing: 5px; opacity: 0.7; transition: 0.3s;
+        }
+        #start-trigger:hover { opacity: 1; text-shadow: 0 0 10px white; }
+
+        /* --- POPUP / CARD --- */
+        #confirmation-card {
+            position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%) scale(0.8);
+            background: #111; border: 2px solid var(--neon-yellow); padding: 40px;
+            border-radius: 20px; text-align: center; z-index: 1001;
+            display: none; opacity: 0; transition: 0.4s;
+            box-shadow: 0 0 50px rgba(0,0,0,0.8);
         }
 
-        /* Estilos para a Tela Superior Esquerda */
-        #top-left-screen {
-            flex: 1;
-            background-color: white;
-            display: grid;
-            grid-template-columns: repeat(4, 1fr);
-            grid-template-rows: repeat(2, 1fr);
-            gap: 1px;
-            padding: 1px;
+        #confirmation-card.show { display: block; opacity: 1; transform: translate(-50%, -50%) scale(1); }
+
+        #confirmation-card p { font-size: 1.5rem; margin-bottom: 30px; line-height: 1.4; }
+
+        .btn-confirm {
+            background: var(--neon-yellow); color: black; border: none;
+            padding: 15px 40px; font-family: var(--font-main); font-weight: bold;
+            border-radius: 10px; cursor: pointer; transition: 0.3s;
+        }
+        .btn-confirm:hover { transform: scale(1.1); box-shadow: 0 0 20px var(--neon-yellow); }
+
+        /* --- HUD PRINCIPAL (ESTILO ANTERIOR) --- */
+        #hud-content {
+            display: flex; flex-direction: column; justify-content: center;
+            align-items: center; height: 100vh; opacity: 0; transition: opacity 1s ease;
         }
 
-        /* Estilo base para todos os botões na tela superior esquerda */
-        .button-part {
-            background-color: #393939;
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            cursor: pointer;
-            transition: background-color 0.3s ease, transform 0.1s ease;
-            border-radius: 0px;
-            font-size: 12px;
-            font-weight: bold;
-            color: white;
-            border: 0px solid transparent;
-            width: 100%;
-            height: 100%;
-            margin: 0px;
-            padding: 0px;
-            text-align: center; /* Garante que o texto dos botões esteja centralizado */
+        /* Estilos do Velocímetro (mantidos conforme solicitado) */
+        body.sleeping { animation: borderPulse 3s infinite ease-in-out; }
+        @keyframes borderPulse {
+            0%, 100% { box-shadow: inset 0 0 30px 5px rgba(0, 210, 255, 0.2); }
+            50% { box-shadow: inset 0 0 80px 15px rgba(0, 210, 255, 0.5); }
         }
+        .sleep-pulse { animation: emojiPulse 3s infinite ease-in-out; }
+        @keyframes emojiPulse { 0%, 100% { transform: scale(1); opacity: 0.5; } 50% { transform: scale(1.2); opacity: 1; } }
 
-        /* Efeito de hover para todos os botões */
-        .button-part:hover {
-            background-color: #555;
+        @keyframes extremeShake {
+            0% { transform: translate(0,0) rotate(0); }
+            20% { transform: translate(-4px, -4px) rotate(-4deg); }
+            40% { transform: translate(4px, 4px) rotate(4deg); }
+            100% { transform: translate(0,0) rotate(0); }
         }
+        .vibrating-rocket { animation: extremeShake 0.1s infinite; display: inline-block; }
 
-        /* Estilo para o botão ATIVADO */
-        .button-part.active {
-            background-color: #32CD32;
-            color: #fff;
-            border: 0px solid #28a745;
-        }
+        #grid-floor { position: fixed; bottom: -120px; width: 300%; height: 65vh; background-image: linear-gradient(0deg, transparent 24%, rgba(0, 210, 255, 0.2) 25%, rgba(0, 210, 255, 0.3) 26%, transparent 27%), linear-gradient(90deg, transparent 24%, rgba(0, 210, 255, 0.2) 25%, rgba(0, 210, 255, 0.3) 26%, transparent 27%); background-size: 80px 80px; transform: rotateX(70deg); z-index: -1; mask-image: linear-gradient(to top, rgba(0,0,0,1) 10%, transparent 90%); }
+        .flow-line { position: absolute; width: 2px; height: 180px; background: linear-gradient(to bottom, transparent, white, transparent); z-index: 1; pointer-events: none; }
+        @keyframes flowMove { from { transform: translateY(-110vh); } to { transform: translateY(110vh); } }
 
-        /* Estilo específico para o botão "ALERTA" quando ativo (amarelo) */
-        .button-part.btn-7.active { background-color: #fbff00; color: #333; }
-
-
-        #bottom-left-screen {
-            flex: 1;
-            background-color: #3b3a63;
-            display: flex;
-            flex-direction: column;
-            justify-content: center;
-            align-items: center;
-            padding: 10px;
-        }
-
-        #bottom-left-screen h4 {
-            margin-bottom: 5px;
-        }
-
-        #bottom-left-screen p {
-            font-size: 12px;
-            margin: 2px 0;
-            font-weight: normal;
-        }
-
-        /* Estilos para o status ATIVADO/DESATIVADO */
-        .status-active {
-            color: #32CD32;
-            font-weight: bold;
-        }
-
-        .status-inactive {
-            color: #ff4d4d;
-            font-weight: bold;
-        }
-
-        .status-unknown {
-            color: #f39c12;
-            font-weight: bold;
-        }
-
-        /* --- Estilos do Velocímetro Digital --- */
-        .digital-velocimeter {
-            display: flex;
-            flex-direction: column;
-            justify-content: center;
-            align-items: center;
-            background-color: #222;
-            border-radius: 10px;
-            padding: 20px 30px;
-            margin-top: 20px;
-            margin-bottom: 20px;
-            box-shadow: 0 0 15px rgba(0, 0, 0, 0.7);
-            width: 80%;
-            max-width: 300px;
-            position: relative;
-        }
-
-        .digital-speed-value {
-            font-family: 'Digital-7', monospace;
-            font-size: 4.5em;
-            color: #32CD32;
-            text-shadow: 0 0 10px rgba(50, 205, 50, 0.8);
-            margin: 0;
-            line-height: 1em;
-        }
-
-        .digital-units {
-            font-size: 1.3em;
-            color: #eee;
-            margin-top: 5px;
-        }
-
-        .digital-label {
-            font-size: 0.9em;
-            color: #aaa;
-            margin-bottom: 10px;
-            text-transform: uppercase;
-        }
-
-        .velocimeter-message, .location-message, .weather-message {
-            font-size: 0.9em;
-            color: #aaa;
-            text-align: center;
-            margin-top: 5px;
-            padding: 0 10px;
-        }
-
-        .error {
-            color: #ff4d4d;
-            font-weight: bold;
-        }
-
-        /* --- Estilos para Localização e Clima --- */
-        .info-card {
-            background-color: #2c3e50;
-            border-radius: 8px;
-            padding: 15px;
-            margin-top: 15px;
-            width: 80%;
-            max-width: 300px;
-            text-align: center;
-            box-shadow: 0 0 10px rgba(0, 0, 0, 0.5);
-        }
-
-        .info-card h3 {
-            margin-top: 0;
-            margin-bottom: 10px;
-            color: #f1c40f;
-            font-size: 1.3em;
-        }
-
-        .info-card p {
-            margin: 5px 0;
-            font-size: 1em;
-            color: #ecf0f1;
-        }
-
-        .weather-info img {
-            vertical-align: middle;
-            margin-right: 5px;
-            width: 40px;
-            height: 40px;
-        }
-
-        .weather-temp {
-            font-size: 1.8em;
-            font-weight: bold;
-            color: #3498db;
-        }
-
-        .weather-desc {
-            font-size: 1em;
-            text-transform: capitalize;
-        }
-
-        .loading-text {
-            color: #f39c12;
-        }
-
-        /* --- Estilos do Alerta de Velocidade --- */
-        #speed-alert-light {
-            width: 20px;
-            height: 20px;
-            background-color: #888;
-            border-radius: 50%;
-            position: absolute;
-            top: 10px;
-            right: 10px;
-            box-shadow: 0 0 5px rgba(0, 0, 0, 0.5);
-            transition: background-color 0.1s ease-in-out;
-        }
-
-        /* Animação de piscar */
-        @keyframes blink {
-            0%, 100% { opacity: 1; }
-            50% { opacity: 0; }
-        }
-
-        /* Classe para ativar a luz e a animação */
-        #speed-alert-light.active {
-            background-color: #ff0000;
-            box-shadow: 0 0 15px #ff0000, 0 0 30px #ff0000;
-            animation: blink 0.7s infinite alternate;
-        }
-
-        /* ======================================= */
-        /* --- Media Queries para Responsividade --- */
-        /* ======================================= */
-
-        /* Para telas menores que 768px (tablets em retrato e celulares) */
-        @media (max-width: 768px) {
-            .main-container {
-                flex-direction: column; /* Empilha as colunas verticalmente */
-            }
-
-            .left-column, .right-column {
-                width: 100%; /* Ocupam a largura total */
-                height: auto; /* Altura flexível */
-                min-height: 50vh; /* Pelo menos metade da tela */
-            }
-
-            /* Ajustes para a tela de botões */
-            #top-left-screen {
-                grid-template-columns: repeat(2, 1fr); /* 2 colunas para botões em telas pequenas */
-                font-size: 1em; /* Reduz o tamanho da fonte dos botões */
-                padding: 5px; /* Reduz padding */
-            }
-
-            .button-part {
-                font-size: 10px; /* Fonte ainda menor para caber melhor */
-                padding: 10px 5px; /* Adiciona um pouco mais de padding nos botões */
-            }
-
-            /* Ajustes para a bottom-left-screen */
-            #bottom-left-screen {
-                padding: 5px; /* Reduz padding */
-                font-size: 1em;
-            }
-            #bottom-left-screen h4 {
-                font-size: 1.2em; /* Reduz o título */
-            }
-            #bottom-left-screen p {
-                font-size: 0.9em; /* Reduz o texto de status */
-            }
-
-
-            /* Ajustes para o Velocímetro Digital */
-            .digital-velocimeter {
-                margin-top: 10px; /* Reduz margem superior */
-                margin-bottom: 10px; /* Reduz margem inferior */
-                padding: 15px 20px; /* Reduz padding */
-                width: 90%; /* Ocupa mais largura em telas pequenas */
-                max-width: unset; /* Remove o limite máximo de largura */
-            }
-
-            .digital-speed-value {
-                font-size: 3.5em; /* Reduz o tamanho da fonte da velocidade */
-            }
-
-            .digital-units {
-                font-size: 1.1em; /* Reduz o tamanho da fonte das unidades */
-            }
-
-            .digital-label {
-                font-size: 0.8em; /* Reduz o tamanho da fonte do label */
-            }
-
-            /* Ajustes para os Cards de Informação (Localização e Clima) */
-            .info-card {
-                margin-top: 10px; /* Reduz margem superior */
-                padding: 10px; /* Reduz padding */
-                width: 90%; /* Ocupa mais largura em telas pequenas */
-                max-width: unset; /* Remove o limite máximo de largura */
-            }
-
-            .info-card h3 {
-                font-size: 1.1em; /* Reduz o título do card */
-            }
-
-            .info-card p {
-                font-size: 0.9em; /* Reduz o texto do card */
-            }
-
-            .weather-temp {
-                font-size: 1.5em; /* Reduz a temperatura */
-            }
-
-            .weather-info img {
-                width: 30px; /* Reduz o ícone do clima */
-                height: 30px;
-            }
-
-            .velocimeter-message, .location-message, .weather-message {
-                font-size: 0.8em; /* Reduz mensagens de status */
-                margin-top: 2px;
-            }
-
-            #speed-alert-light {
-                width: 15px; /* Reduz o tamanho da luz de alerta */
-                height: 15px;
-                top: 5px; /* Ajusta posição */
-                right: 5px;
-            }
-        }
-
-        /* Para telas ainda menores (celulares em retrato) */
-        @media (max-width: 480px) {
-            #top-left-screen {
-                grid-template-columns: repeat(2, 1fr); /* Mantém 2 colunas */
-            }
-            .button-part {
-                font-size: 9px; /* Mais ajustes de fonte para botões */
-                padding: 8px 3px;
-            }
-
-            .digital-speed-value {
-                font-size: 3em; /* Mais ajuste para velocidade */
-            }
-        }
-
+        #status-display { position: absolute; top: 40px; left: 40px; }
+        #status-emoji { font-size: 4.5rem; }
+        #odometer-container { position: absolute; bottom: 40px; right: 40px; text-align: right; background: rgba(255,255,255,0.03); padding: 15px 25px; border-radius: 5px; border-right: 4px solid var(--neon-blue); }
+        #odo-value { font-size: 1.8rem; font-weight: 900; }
+        .dash-container { position: relative; width: 600px; text-align: center; }
+        .track { stroke: rgba(255,255,255,0.05); stroke-width: 20; fill: none; stroke-linecap: round; }
+        .progress { fill: none; stroke-width: 22; stroke-linecap: round; stroke-dasharray: 630; stroke-dashoffset: 630; transition: stroke-dashoffset 0.3s ease-out; }
+        .speed { font-size: 10rem; font-weight: 900; font-style: italic; line-height: 0.8; }
+        #config-btn { position: absolute; top: 40px; right: 40px; font-size: 1.5rem; cursor: pointer; opacity: 0.3; }
+        #test-panel { position: absolute; bottom: 20px; left: 50%; transform: translateX(-50%); background: rgba(0,0,0,0.9); padding: 20px; border-radius: 15px; display: none; z-index: 100; }
     </style>
+    <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;900&display=swap" rel="stylesheet">
 </head>
 <body>
 
-    <div class="main-container">
-        <div class="left-column">
-            <div id="top-left-screen" class="screen">
-                </div>
-            <div id="bottom-left-screen" class="screen">
-                <p>Localização: <span id="locationStatusText" class="status-unknown">Verificando...</span></p>
-                <p>Bluetooth: <span id="bluetoothStatusText" class="status-unknown">Verificando...</span></p>
-               
-            </div>
-        </div>
+<div id="splash-screen">
+    <h1 id="brand-name">GERMACER</h1>
+    <div id="start-trigger" onclick="showPopup()">Vamos começar?</div>
+</div>
 
-        <div class="right-column">
-            <div class="digital-velocimeter">
-                <div class="digital-label">Velocidade</div>
-                <div class="digital-speed-value" id="speedDisplay">0</div>
-                <div class="digital-units">km/h</div>
-                <div id="speed-alert-light"></div>
-            </div>
+<div id="confirmation-card">
+    <p>Essa viagem é realmente necessária?</p>
+    <button class="btn-confirm" onclick="initApp()">SIM, INICIAR SISTEMA</button>
+</div>
 
-            <p class="velocimeter-message" id="velocityMessage">Aguardando dados de velocidade...</p>
+<div id="hud-content">
+    <div id="grid-floor"></div>
+    <div id="config-btn" onclick="toggleTestPanel()">⚙️</div>
 
-            <div class="info-card">
-                <h3>Minha Localização</h3>
-                <p>Latitude: <span id="latitudeDisplay" class="loading-text">Carregando...</span></p>
-                <p>Longitude: <span id="longitudeDisplay" class="loading-text">Carregando...</span></p>
-                <p class="location-message" id="locationCoordStatus">Obtendo coordenadas...</p>
-            </div>
+    <div id="status-display">
+        <div id="status-emoji">💤</div>
+        <div id="status-text" class="status-label">Standby</div>
+    </div>
 
-            <div class="info-card">
-                <h3>Clima Atual</h3>
-                <p id="weatherCity" class="loading-text">Carregando cidade...</p>
-                <p class="weather-info">
-                    <span id="weatherIcon"></span>
-                    <span id="weatherTemp" class="weather-temp loading-text">--°C</span>
-                </p>
-                <p id="weatherDescription" class="weather-desc loading-text">Carregando...</p>
-                <p class="weather-message" id="weatherStatus">Buscando informações do clima...</p>
-            </div>
+    <div id="odometer-container">
+        <div class="status-label">TOTAL TRIP</div>
+        <div id="odo-value">00000.00</div>
+    </div>
+
+    <div class="dash-container" id="main-dash">
+        <svg viewBox="0 0 500 300">
+            <path class="track" d="M 60 250 A 180 180 0 0 1 440 250" />
+            <path id="speedArc" class="progress" stroke="var(--neon-green)" d="M 60 250 A 180 180 0 0 1 440 250" />
+        </svg>
+        <div style="position: absolute; top: 55%; left: 50%; transform: translate(-50%, -50%);">
+            <div class="speed" id="speedDisplay">0</div>
+            <span style="letter-spacing: 10px; color: rgba(255,255,255,0.1);">KM/H</span>
         </div>
     </div>
 
-    <script>
-        document.addEventListener('DOMContentLoaded', () => {
-            // --- Variáveis para a API do OpenWeatherMap ---
-            // Substitua 'SUA_API_KEY_AQUI' pela sua chave da OpenWeatherMap!
-            const OPENWEATHER_API_KEY = 'SUA_API_KEY_AQUI'; 
-            const WEATHER_UNIT = 'metric'; // 'metric' para Celsius, 'imperial' para Fahrenheit
+    <div id="test-panel">
+        <input type="range" id="speedInput" min="0" max="200" value="0">
+    </div>
+</div>
 
-            // --- Elementos HTML para o Velocímetro ---
-            const speedDisplay = document.getElementById('speedDisplay');
-            const velocityMessage = document.getElementById('velocityMessage');
-            const speedAlertLight = document.getElementById('speed-alert-light');
+<script>
+    const splash = document.getElementById('splash-screen');
+    const popup = document.getElementById('confirmation-card');
+    const hud = document.getElementById('hud-content');
+    
+    // Funções de Inicialização
+    function showPopup() {
+        popup.classList.add('show');
+    }
 
-            // --- Elementos HTML para Localização no Card de Coordenadas ---
-            const latitudeDisplay = document.getElementById('latitudeDisplay');
-            const longitudeDisplay = document.getElementById('longitudeDisplay');
-            const locationCoordStatus = document.getElementById('locationCoordStatus');
+    function initApp() {
+        // Tenta entrar em Fullscreen
+        if (document.documentElement.requestFullscreen) {
+            document.documentElement.requestFullscreen().catch(e => console.log("Erro ao entrar em fullscreen"));
+        }
+        
+        popup.classList.remove('show');
+        splash.style.opacity = '0';
+        setTimeout(() => {
+            splash.style.display = 'none';
+            hud.style.opacity = '1';
+            startGps();
+        }, 800);
+    }
 
-            // --- Elementos HTML para o Clima ---
-            const weatherCity = document.getElementById('weatherCity');
-            const weatherIcon = document.getElementById('weatherIcon');
-            const weatherTemp = document.getElementById('weatherTemp');
-            const weatherDescription = document.getElementById('weatherDescription');
-            const weatherStatus = document.getElementById('weatherStatus');
+    // Variáveis do HUD
+    const arc = document.getElementById('speedArc');
+    const display = document.getElementById('speedDisplay');
+    const input = document.getElementById('speedInput');
+    const emoji = document.getElementById('status-emoji');
+    const statusText = document.getElementById('status-text');
+    const grid = document.getElementById('grid-floor');
+    const odoValue = document.getElementById('odo-value');
+    const testPanel = document.getElementById('test-panel');
 
-            // --- Elementos HTML para o Status de Localização e Bluetooth na bottom-left-screen ---
-            const locationStatusText = document.getElementById('locationStatusText');
-            const bluetoothStatusText = document.getElementById('bluetoothStatusText');
+    let currentSpeed = 0;
+    let gridOffset = 0;
+    let totalKm = 0;
+    let lastCoords = null;
+    let idleTime = 0;
 
+    function toggleTestPanel() { testPanel.style.display = (testPanel.style.display === 'block') ? 'none' : 'block'; }
 
-            // --- Script para os Botões da Tela Superior Esquerda ---
-            const topLeftScreen = document.getElementById('top-left-screen');
-            const buttonNames = [
-                "FR BAIXO",
-                "FR ALTO",
-                "LZ INTERNAS",
-                "TRAVAR PORTAS",
-                "A01",
-                "LIGAR SOM",
-                "ALERTA",
-                "MENU"
-            ];
-
-            for (let i = 0; i < buttonNames.length; i++) {
-                const button = document.createElement('div');
-                button.classList.add('button-part', `btn-${i + 1}`);
-                button.textContent = buttonNames[i];
-                topLeftScreen.appendChild(button);
-
-                button.addEventListener('click', () => {
-                    button.classList.toggle('active');
-                });
+    // Lógica de Soneca
+    setInterval(() => {
+        if (currentSpeed === 0) {
+            idleTime++;
+            if (idleTime >= 30) {
+                document.body.classList.add('sleeping');
+                emoji.classList.add('sleep-pulse');
             }
+        } else {
+            idleTime = 0;
+            document.body.classList.remove('sleeping');
+            emoji.classList.remove('sleep-pulse');
+        }
+    }, 1000);
 
-            // --- Funções do Velocímetro e Alerta de Velocidade ---
-            const SPEED_LIMIT = 60; // Limite de velocidade para o alerta em km/h
+    function createFlowLine() {
+        if (currentSpeed < 100) return;
+        const line = document.createElement('div');
+        line.className = 'flow-line';
+        line.style.left = Math.random() * 100 + 'vw';
+        const duration = 0.8 / (currentSpeed / 100);
+        line.style.animation = `flowMove ${duration}s linear forwards`;
+        document.body.appendChild(line);
+        setTimeout(() => line.remove(), duration * 1000);
+    }
 
-            function updateVelocimeter(speed) {
-                speedDisplay.textContent = Math.round(speed);
-
-                if (speed > SPEED_LIMIT) {
-                    speedAlertLight.classList.add('active');
-                } else {
-                    speedAlertLight.classList.remove('active');
-                }
-            }
-
-            // --- Funções da Localização e Clima ---
-            let lastLatitude = null;
-            let lastLongitude = null;
-            const COORDS_UPDATE_THRESHOLD = 0.0001; // Limiar para chamar a API de clima novamente (em graus)
-
-            async function fetchWeatherData(latitude, longitude) {
-                if (!OPENWEATHER_API_KEY || OPENWEATHER_API_KEY === 'SUA_API_KEY_AQUI') {
-                    weatherStatus.textContent = "Erro: Chave de API do OpenWeatherMap não configurada.";
-                    weatherStatus.classList.add('error');
-                    return;
-                }
-
-                weatherStatus.textContent = "Buscando informações do clima...";
-                weatherStatus.classList.remove('error');
-
-                const apiUrl = `https://api.openweathermap.org/data/2.5/weather?lat=${latitude}&lon=${longitude}&appid=${OPENWEATHER_API_KEY}&units=${WEATHER_UNIT}&lang=pt_br`;
-
-                try {
-                    const response = await fetch(apiUrl);
-                    if (!response.ok) {
-                        throw new Error(`HTTP error! status: ${response.status}`);
+    function startGps() {
+        if ("geolocation" in navigator) {
+            navigator.geolocation.watchPosition((pos) => {
+                if (testPanel.style.display === 'none' || input.value == 0) {
+                    const speed = pos.coords.speed ? Math.round(pos.coords.speed * 3.6) : 0;
+                    updateView(speed);
+                    if (lastCoords) {
+                        const dist = calculateDistance(lastCoords.lat, lastCoords.lon, pos.coords.latitude, pos.coords.longitude);
+                        if (dist > 0.002) { 
+                            totalKm += dist; 
+                            odoValue.innerText = totalKm.toFixed(2).padStart(8, '0');
+                        }
                     }
-                    const data = await response.json();
-
-                    weatherCity.textContent = data.name;
-                    weatherTemp.textContent = `${Math.round(data.main.temp)}°C`;
-                    weatherDescription.textContent = data.weather[0].description;
-                    weatherIcon.innerHTML = `<img src="https://openweathermap.org/img/wn/${data.weather[0].icon}.png" alt="${data.weather[0].description}">`;
-                    weatherStatus.textContent = "Clima atualizado.";
-                    weatherStatus.classList.remove('error');
-
-                } catch (error) {
-                    console.error('Erro ao buscar dados do clima:', error);
-                    weatherCity.textContent = 'Não disponível';
-                    weatherTemp.textContent = '--°C';
-                    weatherDescription.textContent = 'Erro ao carregar';
-                    weatherIcon.innerHTML = '';
-                    weatherStatus.textContent = `Erro ao carregar clima: ${error.message}`;
-                    weatherStatus.classList.add('error');
+                    lastCoords = { lat: pos.coords.latitude, lon: pos.coords.longitude };
                 }
-            }
+            }, null, { enableHighAccuracy: true });
+        }
+    }
 
-            // --- Função para atualizar o status de Localização na bottom-left-screen ---
-            function updateLocationStatusText(isActive) {
-                if (isActive) {
-                    locationStatusText.textContent = "ATIVADO";
-                    locationStatusText.className = 'status-active';
-                } else {
-                    locationStatusText.textContent = "DESATIVADO";
-                    locationStatusText.className = 'status-inactive';
-                }
-            }
+    function calculateDistance(lat1, lon1, lat2, lon2) {
+        const R = 6371;
+        const dLat = (lat2-lat1)*Math.PI/180;
+        const dLon = (lon2-lon1)*Math.PI/180;
+        const a = Math.sin(dLat/2)**2 + Math.cos(lat1*Math.PI/180)*Math.cos(lat2*Math.PI/180)*Math.sin(dLon/2)**2;
+        return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
+    }
 
-            // --- Função para verificar e atualizar o status do Bluetooth ---
-            function checkBluetoothStatus() {
-                if (navigator.bluetooth) {
-                    bluetoothStatusText.textContent = "DISPONÍVEL";
-                    bluetoothStatusText.className = 'status-active';
-                } else {
-                    bluetoothStatusText.textContent = "NÃO SUPORTADO";
-                    bluetoothStatusText.className = 'status-inactive';
-                }
-            }
+    function animate() {
+        if (currentSpeed > 0) {
+            gridOffset += (currentSpeed / 10) + 1;
+            grid.style.backgroundPosition = `0 ${gridOffset}px`;
+            if (currentSpeed >= 100 && Math.random() > 0.6) createFlowLine();
+        }
+        requestAnimationFrame(animate);
+    }
+    animate();
 
+    function updateView(val) {
+        currentSpeed = parseInt(val);
+        arc.style.strokeDashoffset = 630 - (currentSpeed / 200) * 630;
+        display.innerText = currentSpeed;
 
-            function successCallback(position) {
-                // Atualiza o Velocímetro e Alerta
-                let speedMetersPerSecond = position.coords.speed;
-                if (speedMetersPerSecond === null || speedMetersPerSecond < 0) {
-                    speedMetersPerSecond = 0;
-                    velocityMessage.textContent = "Sem movimento ou dados de velocidade não disponíveis.";
-                } else {
-                    velocityMessage.textContent = "Dados de velocidade recebidos.";
-                }
-                const speedKmH = speedMetersPerSecond * 3.6;
-                updateVelocimeter(speedKmH);
+        if (currentSpeed >= 101) {
+            emoji.innerText = "🚀";
+            emoji.classList.add('vibrating-rocket');
+            arc.style.stroke = "var(--neon-red)";
+            display.style.color = "var(--neon-red)";
+        } else if (currentSpeed >= 61) {
+            emoji.innerText = "🔹";
+            emoji.classList.remove('vibrating-rocket');
+            arc.style.stroke = "var(--neon-blue)";
+            display.style.color = "var(--neon-blue)";
+        } else if (currentSpeed >= 45) {
+            emoji.innerText = "⚠️";
+            emoji.classList.remove('vibrating-rocket');
+            arc.style.stroke = "var(--neon-yellow)";
+            display.style.color = "var(--neon-yellow)";
+        } else {
+            emoji.innerText = currentSpeed === 0 ? "💤" : "😎";
+            emoji.classList.remove('vibrating-rocket');
+            arc.style.stroke = "var(--neon-green)";
+            display.style.color = "var(--neon-green)";
+        }
+    }
 
-                // Atualiza a Localização no Card de Coordenadas
-                const latitude = position.coords.latitude;
-                const longitude = position.coords.longitude;
-                latitudeDisplay.textContent = latitude.toFixed(6);
-                longitudeDisplay.textContent = longitude.toFixed(6);
-                locationCoordStatus.textContent = "Coordenadas atualizadas.";
-                locationCoordStatus.classList.remove('error');
-
-                // Atualiza o status de Localização na bottom-left-screen para ATIVADO
-                updateLocationStatusText(true);
-
-                // Verifica se a localização mudou o suficiente para atualizar o clima
-                if (lastLatitude === null ||
-                    Math.abs(latitude - lastLatitude) > COORDS_UPDATE_THRESHOLD ||
-                    Math.abs(longitude - lastLongitude) > COORDS_UPDATE_THRESHOLD) {
-                    
-                    fetchWeatherData(latitude, longitude);
-                    lastLatitude = latitude;
-                    lastLongitude = longitude;
-                }
-            }
-
-            function errorCallback(error) {
-                let errorMessage = "Erro ao obter localização: ";
-                switch (error.code) {
-                    case error.PERMISSION_DENIED:
-                        errorMessage += "Permissão negada. Por favor, permita o acesso à localização.";
-                        updateLocationStatusText(false);
-                        break;
-                    case error.POSITION_UNAVAILABLE:
-                        errorMessage += "Localização indisponível. Verifique suas configurações de GPS.";
-                        updateLocationStatusText(false);
-                        break;
-                    case error.TIMEOUT:
-                        errorMessage += "Tempo limite excedido ao tentar obter a localização.";
-                        updateLocationStatusText(false);
-                        break;
-                    case error.UNKNOWN_ERROR:
-                        errorMessage += "Erro desconhecido.";
-                        updateLocationStatusText(false);
-                        break;
-                }
-                velocityMessage.textContent = errorMessage;
-                velocityMessage.classList.add('error');
-                locationCoordStatus.textContent = errorMessage;
-                locationCoordStatus.classList.add('error');
-                weatherStatus.textContent = `Não foi possível carregar o clima: ${errorMessage}`;
-                weatherStatus.classList.add('error');
-                updateVelocimeter(0);
-                latitudeDisplay.textContent = 'N/A';
-                longitudeDisplay.textContent = 'N/A';
-                weatherCity.textContent = 'N/A';
-                weatherTemp.textContent = '--°C';
-                weatherDescription.textContent = 'N/A';
-                weatherIcon.innerHTML = '';
-                speedAlertLight.classList.remove('active');
-            }
-
-            // Opções para a observação da localização
-            const watchOptions = {
-                enableHighAccuracy: true,
-                timeout: 10000,
-                maximumAge: 0
-            };
-
-            // Inicia a observação da localização
-            if (navigator.geolocation) {
-                navigator.geolocation.watchPosition(successCallback, errorCallback, watchOptions);
-                velocityMessage.textContent = "Iniciando busca por velocidade...";
-                locationCoordStatus.textContent = "Iniciando busca por coordenadas...";
-                locationStatusText.textContent = "Verificando...";
-                locationStatusText.className = 'status-unknown';
-            } else {
-                const noGeoMessage = "Seu navegador não suporta Geolocalização.";
-                velocityMessage.textContent = noGeoMessage;
-                locationCoordStatus.textContent = noGeoMessage;
-                weatherStatus.textContent = noGeoMessage;
-                velocityMessage.classList.add('error');
-                locationCoordStatus.classList.add('error');
-                weatherStatus.classList.add('error');
-                updateLocationStatusText(false);
-            }
-
-            // Verifica o status do Bluetooth ao carregar a página
-            checkBluetoothStatus();
-        });
-    </script>
+    input.addEventListener('input', (e) => updateView(e.target.value));
+</script>
 </body>
 </html>
