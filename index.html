@@ -168,6 +168,10 @@
         dash.style.display = 'flex'; 
         carregarStatus();
         iniciarGPS();
+        // Ativa Fullscreen após o Dash aparecer
+        if (document.documentElement.requestFullscreen) {
+          document.documentElement.requestFullscreen().catch(() => {});
+        }
       }, 500);
     }, 1500);
 
@@ -186,22 +190,13 @@
       if ("geolocation" in navigator) {
         navigator.geolocation.watchPosition(
           (position) => {
-            // O GPS retorna em m/s. Convertendo para km/h (* 3.6)
             let velocidadeReal = position.coords.speed ? position.coords.speed * 3.6 : 0;
             if (velocidadeReal < 0) velocidadeReal = 0;
             atualizarInterface(velocidadeReal);
           },
-          (error) => {
-            console.error("Erro ao acessar GPS: ", error);
-          },
-          {
-            enableHighAccuracy: true,
-            maximumAge: 0,
-            timeout: 5000
-          }
+          (error) => { console.error("Erro GPS:", error); },
+          { enableHighAccuracy: true, maximumAge: 0, timeout: 5000 }
         );
-      } else {
-        alert("Geolocalização não suportada neste dispositivo.");
       }
     }
 
