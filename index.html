@@ -1,256 +1,1481 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="pt-BR">
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-<title>Germacer - Unified Audio System</title>
-<style>
-  * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Segoe UI', Roboto, sans-serif; }
-  
-  body {
-    background-color: #000000;
-    color: #FFFFFF;
-    overflow: hidden;
-    user-select: none;
-    height: 100vh;
-  }
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="theme-color" content="#000000">
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <title>Dashboard Veicular GPS</title>
+  <style>
+    :root {
+      color-scheme: dark;
+      --bg: #000;
+      --panel: #080b0f;
+      --panel-2: #0d1219;
+      --line: rgba(255, 255, 255, 0.15);
+      --line-strong: rgba(255, 255, 255, 0.3);
+      --text: #f3f8ff;
+      --muted: #8fa1b7;
+      --cyan: #35d5ff;
+      --green: #6dff90;
+      --amber: #ffc653;
+      --red: #ff4c6a;
+      --blue: #6aa8ff;
+      --node-shadow: 0 18px 42px rgba(0, 0, 0, 0.45);
+      font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+    }
 
-  #edge-overlay {
-    position: fixed; top: 0; left: 0; right: 0; bottom: 0;
-    pointer-events: none; z-index: 99;
-    box-shadow: inset 0 0 0px rgba(0, 0, 0, 0);
-  }
+    * {
+      box-sizing: border-box;
+      -webkit-tap-highlight-color: transparent;
+    }
 
-  .edge-flash-yellow { animation: singleEdgeYellow 1s ease-out forwards; }
-  @keyframes singleEdgeYellow {
-    0% { box-shadow: inset 0 0 100px rgba(255, 215, 0, 0.8); }
-    100% { box-shadow: inset 0 0 0px rgba(0,0,0,0); }
-  }
+    html,
+    body {
+      width: 100%;
+      min-height: 100%;
+      margin: 0;
+      background: var(--bg);
+      color: var(--text);
+      overflow: hidden;
+    }
 
-  .card-view {
-    display: none;
-    width: 350px;
-    background: rgba(15, 15, 15, 0.98);
-    border: 1px solid #FFD700;
-    border-radius: 15px;
-    padding: 30px;
-    text-align: center;
-    cursor: pointer;
-    box-shadow: 0 10px 40px rgba(0,0,0,0.8);
-    animation: cardSlide 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
-    z-index: 105;
-  }
-  @keyframes cardSlide {
-    from { transform: translateX(120px); opacity: 0; }
-    to { transform: translateX(0); opacity: 1; }
-  }
+    body {
+      min-height: 100dvh;
+      letter-spacing: 0;
+      user-select: none;
+    }
 
-  .card-icon { font-size: 3rem; color: #FFD700; margin-bottom: 10px; }
-  .card-title { font-size: 1.2rem; font-weight: 800; text-transform: uppercase; color: #FFD700; letter-spacing: 2px; }
-  .card-msg { font-size: 0.9rem; color: #aaa; margin-top: 10px; line-height: 1.4; }
+    button,
+    input {
+      font: inherit;
+    }
 
-  #main-dash { width: 100vw; height: 100vh; display: flex; }
-  .panel { width: 50%; height: 100%; display: flex; flex-direction: column; justify-content: center; align-items: center; position: relative; }
+    .app {
+      width: 100vw;
+      height: 100dvh;
+      display: grid;
+      grid-template-rows: auto 1fr;
+      background:
+        radial-gradient(circle at 28% 18%, rgba(53, 213, 255, 0.1), transparent 30%),
+        radial-gradient(circle at 88% 82%, rgba(255, 198, 83, 0.08), transparent 32%),
+        #000;
+    }
 
-  .speed-value { font-size: 12.5rem; line-height: 1; font-weight: 900; transition: color 0.4s; }
-  .speed-unit { font-size: 1.4rem; color: #222; font-weight: bold; letter-spacing: 4px; }
+    .topbar {
+      min-height: 58px;
+      padding: max(10px, env(safe-area-inset-top)) 14px 10px;
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      border-bottom: 1px solid var(--line);
+      background: rgba(0, 0, 0, 0.88);
+      backdrop-filter: blur(18px);
+      z-index: 20;
+    }
 
-  .v-verde { color: #00FF00; }
-  .v-azul { color: #007BFF; }
-  .v-amarelo { color: #FFD700; }
-  .v-vermelho { color: #FF0000; }
+    .brand {
+      min-width: 140px;
+      display: grid;
+      gap: 1px;
+    }
 
-  .car-status { display: flex; gap: 40px; margin-top: 25px; }
-  .status-item { text-align: center; color: #333; text-transform: uppercase; font-size: 0.8rem; }
-  .status-item span { display: block; font-size: 2.2rem; color: #FFF; font-weight: 800; margin-top: 5px; }
+    .brand strong {
+      font-size: 14px;
+      line-height: 1.05;
+      letter-spacing: 0;
+      text-transform: uppercase;
+    }
 
-  #splash {
-    position: fixed; width: 100vw; height: 100vh; background: #000; z-index: 130;
-    display: flex; justify-content: center; align-items: center; transition: opacity 0.5s;
-  }
-  .logo { color: #FFD700; font-size: 5rem; font-weight: 900; letter-spacing: 5px; }
-</style>
+    .brand span {
+      color: var(--muted);
+      font-size: 11px;
+      line-height: 1.1;
+    }
+
+    .chips {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      min-width: 0;
+      flex: 1;
+      overflow: hidden;
+    }
+
+    .chip {
+      min-height: 32px;
+      display: inline-flex;
+      align-items: center;
+      gap: 7px;
+      padding: 0 10px;
+      border: 1px solid var(--line);
+      border-radius: 999px;
+      color: var(--muted);
+      background: rgba(255, 255, 255, 0.035);
+      font-size: 12px;
+      white-space: nowrap;
+    }
+
+    .dot {
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      background: var(--amber);
+      box-shadow: 0 0 14px currentColor;
+    }
+
+    .chip[data-state="active"] {
+      color: var(--green);
+      border-color: rgba(109, 255, 144, 0.45);
+    }
+
+    .chip[data-state="active"] .dot {
+      background: var(--green);
+    }
+
+    .chip[data-state="error"] {
+      color: var(--red);
+      border-color: rgba(255, 76, 106, 0.45);
+    }
+
+    .chip[data-state="error"] .dot {
+      background: var(--red);
+    }
+
+    .actions {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .icon-button {
+      width: 42px;
+      height: 42px;
+      display: inline-grid;
+      place-items: center;
+      border: 1px solid var(--line-strong);
+      border-radius: 8px;
+      color: var(--text);
+      background: linear-gradient(180deg, rgba(255, 255, 255, 0.1), rgba(255, 255, 255, 0.035));
+      box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.1);
+      cursor: pointer;
+    }
+
+    .icon-button:active {
+      transform: translateY(1px);
+    }
+
+    .icon-button.primary {
+      color: #021015;
+      border-color: rgba(53, 213, 255, 0.65);
+      background: linear-gradient(180deg, #7ee9ff, #25bfeb);
+      box-shadow: 0 0 24px rgba(53, 213, 255, 0.24);
+    }
+
+    .icon-button.warn {
+      color: var(--amber);
+      border-color: rgba(255, 198, 83, 0.4);
+    }
+
+    .main {
+      min-height: 0;
+      display: grid;
+      grid-template-columns: minmax(320px, 420px) minmax(0, 1fr);
+      gap: 12px;
+      padding: 12px;
+    }
+
+    .telemetry {
+      min-width: 0;
+      min-height: 0;
+      display: grid;
+      grid-template-rows: minmax(250px, 1fr) auto;
+      gap: 12px;
+    }
+
+    .speed-panel,
+    .metrics-panel,
+    .node-panel {
+      border: 1px solid var(--line);
+      background: rgba(8, 11, 15, 0.86);
+      box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.05);
+    }
+
+    .speed-panel {
+      position: relative;
+      min-height: 280px;
+      display: grid;
+      place-items: center;
+      overflow: hidden;
+    }
+
+    .speed-panel::before {
+      content: "";
+      position: absolute;
+      inset: 18px;
+      border: 1px solid rgba(255, 255, 255, 0.08);
+      pointer-events: none;
+    }
+
+    .speed-ring {
+      --progress: 0deg;
+      width: min(82vw, 320px);
+      aspect-ratio: 1;
+      display: grid;
+      place-items: center;
+      border-radius: 50%;
+      background:
+        conic-gradient(from -140deg, var(--cyan) 0deg, var(--green) var(--progress), rgba(255, 255, 255, 0.08) var(--progress), rgba(255, 255, 255, 0.08) 280deg, transparent 280deg),
+        radial-gradient(circle, rgba(9, 13, 18, 0.98) 0 62%, rgba(9, 13, 18, 0) 63%);
+      filter: drop-shadow(0 0 24px rgba(53, 213, 255, 0.14));
+    }
+
+    .speed-core {
+      width: 78%;
+      aspect-ratio: 1;
+      display: grid;
+      place-items: center;
+      border-radius: 50%;
+      background: radial-gradient(circle, #090d12 0 55%, #05070a 100%);
+      border: 1px solid rgba(255, 255, 255, 0.1);
+    }
+
+    .speed-readout {
+      display: grid;
+      place-items: center;
+      gap: 2px;
+    }
+
+    .speed-value {
+      font-variant-numeric: tabular-nums;
+      font-size: clamp(82px, 13vw, 132px);
+      font-weight: 750;
+      line-height: 0.9;
+      letter-spacing: 0;
+      text-shadow: 0 0 26px rgba(53, 213, 255, 0.26);
+    }
+
+    .speed-unit {
+      color: var(--muted);
+      font-size: 18px;
+      font-weight: 700;
+      text-transform: uppercase;
+    }
+
+    .speed-source {
+      color: var(--amber);
+      font-size: 12px;
+      min-height: 18px;
+      text-transform: uppercase;
+    }
+
+    .metrics-panel {
+      padding: 12px;
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 10px;
+    }
+
+    .metric {
+      min-width: 0;
+      min-height: 72px;
+      display: grid;
+      align-content: center;
+      gap: 5px;
+      padding: 10px;
+      border: 1px solid rgba(255, 255, 255, 0.1);
+      background: rgba(255, 255, 255, 0.035);
+    }
+
+    .metric span {
+      color: var(--muted);
+      font-size: 11px;
+      text-transform: uppercase;
+    }
+
+    .metric strong {
+      min-width: 0;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      font-size: 21px;
+      line-height: 1;
+      font-variant-numeric: tabular-nums;
+    }
+
+    .node-panel {
+      min-width: 0;
+      min-height: 0;
+      display: grid;
+      grid-template-rows: auto 1fr;
+      overflow: hidden;
+    }
+
+    .node-toolbar {
+      min-height: 48px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      padding: 8px 10px;
+      border-bottom: 1px solid var(--line);
+      background: rgba(0, 0, 0, 0.32);
+      overflow-x: auto;
+      scrollbar-width: none;
+    }
+
+    .node-toolbar::-webkit-scrollbar {
+      display: none;
+    }
+
+    .tool-button {
+      height: 32px;
+      min-width: 38px;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 6px;
+      padding: 0 10px;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      color: var(--text);
+      background: rgba(255, 255, 255, 0.045);
+      cursor: pointer;
+      white-space: nowrap;
+      font-size: 12px;
+    }
+
+    .tool-button:active {
+      transform: translateY(1px);
+    }
+
+    .tool-button.accent {
+      color: var(--cyan);
+      border-color: rgba(53, 213, 255, 0.36);
+    }
+
+    .node-stage {
+      position: relative;
+      min-height: 0;
+      overflow: hidden;
+      touch-action: none;
+      background:
+        linear-gradient(rgba(255, 255, 255, 0.045) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(255, 255, 255, 0.045) 1px, transparent 1px),
+        #030405;
+      background-size: 32px 32px;
+    }
+
+    .wire-canvas {
+      position: absolute;
+      inset: 0;
+      width: 100%;
+      height: 100%;
+      z-index: 1;
+      pointer-events: none;
+    }
+
+    .node {
+      position: absolute;
+      width: 216px;
+      min-height: 132px;
+      border: 1px solid rgba(255, 255, 255, 0.16);
+      border-radius: 8px;
+      color: var(--text);
+      background: linear-gradient(180deg, rgba(20, 27, 37, 0.96), rgba(8, 12, 17, 0.96));
+      box-shadow: var(--node-shadow);
+      z-index: 2;
+      overflow: hidden;
+    }
+
+    .node[data-type="gps"] {
+      border-color: rgba(53, 213, 255, 0.34);
+    }
+
+    .node[data-type="alert"] {
+      border-color: rgba(255, 198, 83, 0.34);
+    }
+
+    .node[data-type="display"] {
+      border-color: rgba(109, 255, 144, 0.28);
+    }
+
+    .node-header {
+      height: 38px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 10px;
+      padding: 0 11px;
+      border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+      background: rgba(255, 255, 255, 0.045);
+      cursor: grab;
+      touch-action: none;
+    }
+
+    .node-header:active {
+      cursor: grabbing;
+    }
+
+    .node-title {
+      min-width: 0;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      font-size: 13px;
+      font-weight: 700;
+      white-space: nowrap;
+    }
+
+    .node-type {
+      color: var(--muted);
+      font-size: 10px;
+      text-transform: uppercase;
+    }
+
+    .node-body {
+      display: grid;
+      grid-template-columns: 24px 1fr 24px;
+      gap: 4px;
+      padding: 12px 7px 10px;
+    }
+
+    .ports {
+      display: grid;
+      align-content: start;
+      gap: 10px;
+      padding-top: 2px;
+    }
+
+    .port {
+      width: 16px;
+      height: 16px;
+      border-radius: 50%;
+      border: 2px solid rgba(255, 255, 255, 0.5);
+      background: #111923;
+      cursor: crosshair;
+      box-shadow: 0 0 0 3px rgba(255, 255, 255, 0.04);
+      touch-action: none;
+    }
+
+    .port[data-port-kind="output"] {
+      border-color: var(--cyan);
+    }
+
+    .port[data-port-kind="input"] {
+      border-color: var(--amber);
+    }
+
+    .port.selected {
+      background: var(--cyan);
+      box-shadow: 0 0 0 5px rgba(53, 213, 255, 0.18), 0 0 22px rgba(53, 213, 255, 0.5);
+    }
+
+    .port.compatible {
+      box-shadow: 0 0 0 5px rgba(255, 198, 83, 0.18), 0 0 18px rgba(255, 198, 83, 0.38);
+    }
+
+    .node-content {
+      min-width: 0;
+      display: grid;
+      align-content: start;
+      gap: 9px;
+    }
+
+    .node-readout {
+      display: flex;
+      align-items: baseline;
+      justify-content: space-between;
+      gap: 8px;
+      min-height: 22px;
+      color: var(--muted);
+      font-size: 11px;
+    }
+
+    .node-readout strong {
+      color: var(--text);
+      font-size: 16px;
+      font-variant-numeric: tabular-nums;
+      line-height: 1;
+    }
+
+    .node-readout.ok strong {
+      color: var(--green);
+    }
+
+    .node-readout.hot strong {
+      color: var(--red);
+    }
+
+    .threshold-row {
+      display: grid;
+      grid-template-columns: 1fr 64px;
+      align-items: center;
+      gap: 8px;
+      color: var(--muted);
+      font-size: 11px;
+    }
+
+    .threshold-row input {
+      width: 64px;
+      min-width: 0;
+      height: 30px;
+      border: 1px solid rgba(255, 255, 255, 0.16);
+      border-radius: 7px;
+      padding: 0 8px;
+      color: var(--text);
+      background: rgba(0, 0, 0, 0.28);
+      font-variant-numeric: tabular-nums;
+    }
+
+    .port-labels {
+      display: grid;
+      gap: 5px;
+      color: var(--muted);
+      font-size: 10px;
+      line-height: 1.1;
+    }
+
+    .toast {
+      position: fixed;
+      left: 50%;
+      bottom: max(16px, env(safe-area-inset-bottom));
+      max-width: min(560px, calc(100vw - 28px));
+      transform: translate(-50%, 120%);
+      z-index: 50;
+      padding: 12px 14px;
+      border: 1px solid rgba(255, 198, 83, 0.36);
+      border-radius: 8px;
+      color: var(--text);
+      background: rgba(8, 11, 15, 0.96);
+      box-shadow: 0 18px 42px rgba(0, 0, 0, 0.5);
+      font-size: 13px;
+      line-height: 1.35;
+      transition: transform 180ms ease;
+    }
+
+    .toast.show {
+      transform: translate(-50%, 0);
+    }
+
+    @media (max-width: 820px) {
+      .topbar {
+        gap: 8px;
+        padding-left: 10px;
+        padding-right: 10px;
+      }
+
+      .brand {
+        min-width: 100px;
+      }
+
+      .brand span,
+      .chip.optional {
+        display: none;
+      }
+
+      .main {
+        grid-template-columns: 1fr;
+        grid-template-rows: 46vh minmax(0, 1fr);
+        gap: 10px;
+        padding: 10px;
+      }
+
+      .telemetry {
+        grid-template-columns: minmax(230px, 0.9fr) 1fr;
+        grid-template-rows: 1fr;
+      }
+
+      .speed-panel {
+        min-height: 0;
+      }
+
+      .speed-ring {
+        width: min(42vh, 290px);
+      }
+
+      .metrics-panel {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        overflow: auto;
+      }
+
+      .metric {
+        min-height: 62px;
+      }
+    }
+
+    @media (max-width: 640px) {
+      .main {
+        grid-template-rows: 48vh minmax(0, 1fr);
+      }
+
+      .telemetry {
+        grid-template-columns: 1fr;
+        grid-template-rows: minmax(180px, 1fr) auto;
+      }
+
+      .metrics-panel {
+        grid-template-columns: repeat(3, minmax(100px, 1fr));
+        overflow-x: auto;
+      }
+
+      .speed-value {
+        font-size: clamp(62px, 20vw, 96px);
+      }
+
+      .node {
+        width: 204px;
+      }
+    }
+  </style>
 </head>
-<body id="bg-body">
+<body>
+  <div class="app">
+    <header class="topbar">
+      <div class="brand">
+        <strong>Dash GPS</strong>
+        <span>Node cockpit</span>
+      </div>
 
-  <div id="edge-overlay"></div>
+      <div class="chips" aria-live="polite">
+        <div class="chip" id="gpsChip" data-state="idle"><i class="dot" aria-hidden="true"></i><span id="gpsStatus">GPS parado</span></div>
+        <div class="chip optional" id="secureChip"><i class="dot" aria-hidden="true"></i><span id="secureStatus">HTTPS/local</span></div>
+        <div class="chip optional" id="wakeChip"><i class="dot" aria-hidden="true"></i><span id="wakeStatus">Tela ativa</span></div>
+      </div>
 
-  <div id="splash">
-    <div class="logo">GERMACER</div>
+      <div class="actions">
+        <button class="icon-button primary" id="gpsButton" type="button" title="Iniciar GPS" aria-label="Iniciar GPS">▶</button>
+        <button class="icon-button" id="fullscreenButton" type="button" title="Tela cheia" aria-label="Tela cheia">⛶</button>
+        <button class="icon-button warn" id="resetTripButton" type="button" title="Zerar viagem" aria-label="Zerar viagem">↺</button>
+      </div>
+    </header>
+
+    <main class="main">
+      <section class="telemetry" aria-label="Telemetria GPS">
+        <div class="speed-panel">
+          <div class="speed-ring" id="speedRing">
+            <div class="speed-core">
+              <div class="speed-readout">
+                <div class="speed-value" id="speedValue">0</div>
+                <div class="speed-unit">km/h</div>
+                <div class="speed-source" id="speedSource">aguardando GPS</div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="metrics-panel">
+          <div class="metric"><span>Precisão</span><strong id="accuracyValue">-- m</strong></div>
+          <div class="metric"><span>Rumo</span><strong id="headingValue">--°</strong></div>
+          <div class="metric"><span>Distância</span><strong id="distanceValue">0,00 km</strong></div>
+          <div class="metric"><span>Média</span><strong id="averageValue">0 km/h</strong></div>
+          <div class="metric"><span>Máxima</span><strong id="maxValue">0 km/h</strong></div>
+          <div class="metric"><span>Coordenada</span><strong id="coordValue">--</strong></div>
+        </div>
+      </section>
+
+      <section class="node-panel" aria-label="Editor de nós">
+        <div class="node-toolbar">
+          <button class="tool-button accent" id="addGpsNode" type="button" title="Adicionar nó GPS">+ GPS</button>
+          <button class="tool-button" id="addFilterNode" type="button" title="Adicionar filtro">+ FX</button>
+          <button class="tool-button" id="addAlertNode" type="button" title="Adicionar alerta">+ !</button>
+          <button class="tool-button" id="addDisplayNode" type="button" title="Adicionar display">+ D</button>
+          <button class="tool-button" id="clearConnectionsButton" type="button" title="Limpar conexões">⌫ fios</button>
+          <button class="tool-button" id="resetLayoutButton" type="button" title="Restaurar nós">↺ nós</button>
+        </div>
+        <div class="node-stage" id="nodeStage">
+          <canvas class="wire-canvas" id="wireCanvas"></canvas>
+        </div>
+      </section>
+    </main>
   </div>
 
-  <div id="main-dash">
-    <div class="panel">
-      <div id="speed-display" class="speed-value">0</div>
-      <div class="speed-unit">KM/H</div>
-      <div class="car-status">
-        <div class="status-item">Fuel<span id="fuel-display">--</span></div>
-        <div class="status-item">Temp<span id="temp-display">--</span></div>
-      </div>
-    </div>
-    
-    <div class="panel" id="right-panel">
-      <div id="speed-card" class="card-view" onclick="fecharCard('speed')">
-        <div class="card-icon">⚠️</div>
-        <div class="card-title">Velocidade Crítica</div>
-        <div class="card-msg">Acima de 100 KM/H.<br>Atenção total.</div>
-      </div>
-
-      <div id="radar-card" class="card-view" onclick="fecharCard('radar')">
-        <div class="card-icon">📡</div>
-        <div class="card-title">Zona de Radar</div>
-        <div class="card-msg">Velocidade entre 45 e 60 KM/H.<br>Respeite os limites.</div>
-      </div>
-
-      <div id="idle-card" class="card-view" onclick="fecharCard('idle')">
-        <div class="card-icon">🅿️</div>
-        <div class="card-title">Veículo Parado</div>
-        <div class="card-msg">Imobilidade prolongada detectada.</div>
-      </div>
-    </div>
-  </div>
+  <div class="toast" id="toast" role="status" aria-live="polite"></div>
 
   <script>
-    const edge = document.getElementById('edge-overlay');
-    const speedTxt = document.getElementById('speed-display');
-    const splash = document.getElementById('splash');
-    const dash = document.getElementById('main-dash');
-    const cardSpeed = document.getElementById('speed-card');
-    const cardRadar = document.getElementById('radar-card');
-    const cardIdle = document.getElementById('idle-card');
+    (() => {
+      "use strict";
 
-    let audioCtx = null;
-    let trig40 = false, trig60 = false, trig100 = false;
-    let trigger45Flash = false;
-    let cardSpeedDismissed = false, cardRadarDismissed = false, cardIdleDismissed = false;
-    
-    let idleTimeout = null;
-    let idleAudioInterval = null;
+      const STORAGE_KEY = "dash-gps-node-layout-v1";
+      const MAX_GAUGE_SPEED = 160;
+      const DEFAULT_NODES = [
+        { id: "gps-1", type: "gps", title: "GPS", x: 42, y: 56, inputs: [], outputs: ["velocidade", "precisao", "rumo"] },
+        { id: "filter-1", type: "filter", title: "Filtro suave", x: 312, y: 52, inputs: ["entrada"], outputs: ["suave"] },
+        { id: "display-1", type: "display", title: "Velocimetro", x: 582, y: 54, inputs: ["kmh"], outputs: [] },
+        { id: "alert-1", type: "alert", title: "Alerta", x: 312, y: 244, inputs: ["kmh"], outputs: ["alto"], threshold: 80 },
+        { id: "lamp-1", type: "lamp", title: "Luz do painel", x: 582, y: 244, inputs: ["estado"], outputs: [] }
+      ];
+      const DEFAULT_CONNECTIONS = [
+        { fromNode: "gps-1", fromPort: "velocidade", toNode: "filter-1", toPort: "entrada" },
+        { fromNode: "filter-1", fromPort: "suave", toNode: "display-1", toPort: "kmh" },
+        { fromNode: "gps-1", fromPort: "velocidade", toNode: "alert-1", toPort: "kmh" },
+        { fromNode: "alert-1", fromPort: "alto", toNode: "lamp-1", toPort: "estado" }
+      ];
 
-    function playTone(freq, duration, type = 'triangle', double = false) {
-      if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
-      
-      const play = (timeOffset) => {
-        const osc = audioCtx.createOscillator();
-        const gain = audioCtx.createGain();
-        osc.type = type;
-        osc.frequency.setValueAtTime(freq, audioCtx.currentTime + timeOffset);
-        gain.gain.setValueAtTime(0.1, audioCtx.currentTime + timeOffset);
-        gain.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + timeOffset + duration);
-        osc.connect(gain);
-        gain.connect(audioCtx.destination);
-        osc.start(audioCtx.currentTime + timeOffset);
-        osc.stop(audioCtx.currentTime + timeOffset + duration);
+      const els = {
+        gpsButton: document.getElementById("gpsButton"),
+        fullscreenButton: document.getElementById("fullscreenButton"),
+        resetTripButton: document.getElementById("resetTripButton"),
+        gpsChip: document.getElementById("gpsChip"),
+        gpsStatus: document.getElementById("gpsStatus"),
+        secureChip: document.getElementById("secureChip"),
+        secureStatus: document.getElementById("secureStatus"),
+        wakeChip: document.getElementById("wakeChip"),
+        wakeStatus: document.getElementById("wakeStatus"),
+        speedRing: document.getElementById("speedRing"),
+        speedValue: document.getElementById("speedValue"),
+        speedSource: document.getElementById("speedSource"),
+        accuracyValue: document.getElementById("accuracyValue"),
+        headingValue: document.getElementById("headingValue"),
+        distanceValue: document.getElementById("distanceValue"),
+        averageValue: document.getElementById("averageValue"),
+        maxValue: document.getElementById("maxValue"),
+        coordValue: document.getElementById("coordValue"),
+        nodeStage: document.getElementById("nodeStage"),
+        wireCanvas: document.getElementById("wireCanvas"),
+        toast: document.getElementById("toast"),
+        addGpsNode: document.getElementById("addGpsNode"),
+        addFilterNode: document.getElementById("addFilterNode"),
+        addAlertNode: document.getElementById("addAlertNode"),
+        addDisplayNode: document.getElementById("addDisplayNode"),
+        clearConnectionsButton: document.getElementById("clearConnectionsButton"),
+        resetLayoutButton: document.getElementById("resetLayoutButton")
       };
 
-      play(0);
-      if (double) setTimeout(() => play(0), 150);
-    }
+      const state = {
+        gpsActive: false,
+        watchId: null,
+        wakeLock: null,
+        lastPosition: null,
+        speedKmh: 0,
+        smoothedSpeedKmh: 0,
+        speedSource: "gps",
+        accuracy: null,
+        heading: null,
+        latitude: null,
+        longitude: null,
+        distanceKm: 0,
+        maxSpeedKmh: 0,
+        speedSamples: [],
+        nodes: [],
+        connections: [],
+        graphInputs: {},
+        graphOutputs: {},
+        connecting: null,
+        pointer: null,
+        dragging: null,
+        toastTimer: null
+      };
 
-    function startIdleBeep() {
-      if (!idleAudioInterval) {
-        playTone(600, 0.8);
-        idleAudioInterval = setInterval(() => {
-          playTone(600, 0.8);
-        }, 1000);
+      function clone(value) {
+        return JSON.parse(JSON.stringify(value));
       }
-    }
 
-    function stopIdleBeep() {
-      clearInterval(idleAudioInterval);
-      idleAudioInterval = null;
-    }
-
-    setTimeout(() => {
-      splash.style.opacity = '0';
-      setTimeout(() => { 
-        splash.style.display = 'none'; 
-        dash.style.display = 'flex'; 
-        carregarStatus();
-        iniciarGPS();
-        // Ativa Fullscreen após o Dash aparecer
-        if (document.documentElement.requestFullscreen) {
-          document.documentElement.requestFullscreen().catch(() => {});
+      function restoreLayout() {
+        try {
+          const saved = JSON.parse(localStorage.getItem(STORAGE_KEY));
+          if (saved && Array.isArray(saved.nodes) && Array.isArray(saved.connections)) {
+            state.nodes = saved.nodes;
+            state.connections = saved.connections;
+            return;
+          }
+        } catch (error) {
+          console.warn("Layout salvo invalido", error);
         }
-      }, 500);
-    }, 1500);
-
-    function carregarStatus() {
-      setTimeout(() => document.getElementById('fuel-display').innerHTML = '<font color="#FFD700">20%</font>', 800);
-      setTimeout(() => document.getElementById('temp-display').textContent = '90ºC', 1600);
-    }
-
-    function fecharCard(tipo) {
-      if(tipo === 'speed') { cardSpeed.style.display = 'none'; cardSpeedDismissed = true; }
-      if(tipo === 'radar') { cardRadar.style.display = 'none'; cardRadarDismissed = true; }
-      if(tipo === 'idle') { cardIdle.style.display = 'none'; cardIdleDismissed = true; stopIdleBeep(); }
-    }
-
-    function iniciarGPS() {
-      if ("geolocation" in navigator) {
-        navigator.geolocation.watchPosition(
-          (position) => {
-            let velocidadeReal = position.coords.speed ? position.coords.speed * 3.6 : 0;
-            if (velocidadeReal < 0) velocidadeReal = 0;
-            atualizarInterface(velocidadeReal);
-          },
-          (error) => { console.error("Erro GPS:", error); },
-          { enableHighAccuracy: true, maximumAge: 0, timeout: 5000 }
-        );
+        state.nodes = clone(DEFAULT_NODES);
+        state.connections = clone(DEFAULT_CONNECTIONS);
       }
-    }
 
-    function atualizarInterface(velocidade) {
-      const v = Math.round(velocidade);
-      speedTxt.textContent = v;
+      function saveLayout() {
+        localStorage.setItem(STORAGE_KEY, JSON.stringify({
+          nodes: state.nodes,
+          connections: state.connections
+        }));
+      }
 
-      speedTxt.className = "speed-value";
-      if (v <= 20) speedTxt.classList.add('v-verde');
-      else if (v <= 39) speedTxt.classList.add('v-azul');
-      else if (v <= 59) speedTxt.classList.add('v-amarelo');
-      else speedTxt.classList.add('v-vermelho');
+      function showToast(message) {
+        window.clearTimeout(state.toastTimer);
+        els.toast.textContent = message;
+        els.toast.classList.add("show");
+        state.toastTimer = window.setTimeout(() => els.toast.classList.remove("show"), 3600);
+      }
 
-      if (v >= 40 && v < 60 && !trig40) { playTone(600, 0.15); trig40 = true; }
-      else if (v < 35) trig40 = false;
+      function setGpsStatus(text, status) {
+        els.gpsStatus.textContent = text;
+        els.gpsChip.dataset.state = status;
+      }
 
-      if (v >= 60 && v < 100 && !trig60) { playTone(600, 0.15, 'triangle', true); trig60 = true; }
-      else if (v < 55) trig60 = false;
+      function updateSecureStatus() {
+        const secure = window.isSecureContext || location.hostname === "localhost" || location.hostname === "127.0.0.1";
+        els.secureChip.dataset.state = secure ? "active" : "error";
+        els.secureStatus.textContent = secure ? "HTTPS/local" : "HTTPS requerido";
+      }
 
-      if (v >= 100 && !trig100) { playTone(600, 0.8); trig100 = true; }
-      else if (v < 95) trig100 = false;
+      function updateWakeStatus(active) {
+        els.wakeChip.dataset.state = active ? "active" : "idle";
+        els.wakeStatus.textContent = active ? "Tela ativa" : "Tela normal";
+      }
 
-      if (v === 0) {
-        if (!idleTimeout && !cardIdleDismissed && cardIdle.style.display !== 'block') {
-          idleTimeout = setTimeout(() => { 
-            cardIdle.style.display = 'block'; 
-            startIdleBeep(); 
-          }, 20000);
+      function formatNumber(value, decimals = 0) {
+        if (!Number.isFinite(value)) return "--";
+        return value.toLocaleString("pt-BR", {
+          minimumFractionDigits: decimals,
+          maximumFractionDigits: decimals
+        });
+      }
+
+      function clamp(value, min, max) {
+        return Math.min(max, Math.max(min, value));
+      }
+
+      function toRadians(deg) {
+        return deg * Math.PI / 180;
+      }
+
+      function haversineKm(a, b) {
+        const earthKm = 6371;
+        const dLat = toRadians(b.latitude - a.latitude);
+        const dLon = toRadians(b.longitude - a.longitude);
+        const lat1 = toRadians(a.latitude);
+        const lat2 = toRadians(b.latitude);
+        const sinLat = Math.sin(dLat / 2);
+        const sinLon = Math.sin(dLon / 2);
+        const h = sinLat * sinLat + Math.cos(lat1) * Math.cos(lat2) * sinLon * sinLon;
+        return 2 * earthKm * Math.atan2(Math.sqrt(h), Math.sqrt(1 - h));
+      }
+
+      function calculateAverageSpeed() {
+        const moving = state.speedSamples.filter((value) => value > 2);
+        if (!moving.length) return 0;
+        return moving.reduce((sum, value) => sum + value, 0) / moving.length;
+      }
+
+      function updateTelemetryUI() {
+        const displayed = Math.round(state.smoothedSpeedKmh);
+        const progress = clamp(state.smoothedSpeedKmh / MAX_GAUGE_SPEED, 0, 1) * 280;
+
+        els.speedRing.style.setProperty("--progress", `${progress}deg`);
+        els.speedValue.textContent = formatNumber(displayed);
+        els.speedSource.textContent = state.speedSource === "gps" ? "velocidade do GPS" : "calculado por posicao";
+        els.accuracyValue.textContent = Number.isFinite(state.accuracy) ? `${formatNumber(state.accuracy)} m` : "-- m";
+        els.headingValue.textContent = Number.isFinite(state.heading) ? `${formatNumber(state.heading)}°` : "--°";
+        els.distanceValue.textContent = `${formatNumber(state.distanceKm, 2)} km`;
+        els.averageValue.textContent = `${formatNumber(calculateAverageSpeed())} km/h`;
+        els.maxValue.textContent = `${formatNumber(state.maxSpeedKmh)} km/h`;
+        els.coordValue.textContent = Number.isFinite(state.latitude) && Number.isFinite(state.longitude)
+          ? `${state.latitude.toFixed(4)}, ${state.longitude.toFixed(4)}`
+          : "--";
+
+        evaluateGraph();
+        updateNodeValues();
+        drawWires();
+      }
+
+      function applyPosition(position) {
+        const coords = position.coords;
+        const current = {
+          latitude: coords.latitude,
+          longitude: coords.longitude,
+          timestamp: position.timestamp
+        };
+
+        let speedKmh = Number.isFinite(coords.speed) && coords.speed >= 0 ? coords.speed * 3.6 : null;
+        state.speedSource = "gps";
+
+        if (speedKmh === null && state.lastPosition) {
+          const seconds = (current.timestamp - state.lastPosition.timestamp) / 1000;
+          const distanceKm = haversineKm(state.lastPosition, current);
+          if (seconds > 0 && seconds < 15 && distanceKm < 1.2) {
+            speedKmh = distanceKm / (seconds / 3600);
+            state.speedSource = "fallback";
+          }
         }
-      } else {
-        clearTimeout(idleTimeout); idleTimeout = null;
-        cardIdle.style.display = 'none'; cardIdleDismissed = false; stopIdleBeep();
-      }
 
-      if (v < 40) { trigger45Flash = false; cardRadarDismissed = false; }
-      if (v < 95) cardSpeedDismissed = false;
-
-      if (v >= 100) {
-        if (!cardSpeedDismissed) cardSpeed.style.display = 'block';
-        cardRadar.style.display = 'none';
-      } 
-      else if (v >= 45 && v < 60) {
-        if (!trigger45Flash) {
-          edge.className = ""; void edge.offsetWidth;
-          edge.className = "edge-flash-yellow";
-          trigger45Flash = true;
+        if (state.lastPosition) {
+          const deltaKm = haversineKm(state.lastPosition, current);
+          const seconds = (current.timestamp - state.lastPosition.timestamp) / 1000;
+          const plausible = seconds > 0 && seconds < 20 && deltaKm < 1.2;
+          if (plausible && (coords.accuracy == null || coords.accuracy < 80)) {
+            state.distanceKm += deltaKm;
+          }
         }
-        if (!cardRadarDismissed) cardRadar.style.display = 'block';
-        cardSpeed.style.display = 'none';
-      } 
-      else {
-        edge.className = ""; cardSpeed.style.display = 'none'; cardRadar.style.display = 'none';
+
+        state.lastPosition = current;
+        state.latitude = coords.latitude;
+        state.longitude = coords.longitude;
+        state.accuracy = coords.accuracy;
+        state.heading = coords.heading;
+        state.speedKmh = clamp(speedKmh || 0, 0, 320);
+        state.smoothedSpeedKmh = state.smoothedSpeedKmh * 0.68 + state.speedKmh * 0.32;
+        state.maxSpeedKmh = Math.max(state.maxSpeedKmh, state.speedKmh);
+        state.speedSamples.push(state.speedKmh);
+        if (state.speedSamples.length > 900) state.speedSamples.shift();
+
+        setGpsStatus("GPS ativo", "active");
+        updateTelemetryUI();
       }
-    }
+
+      function handleGpsError(error) {
+        const messages = {
+          1: "Permissao negada",
+          2: "GPS indisponivel",
+          3: "GPS sem resposta"
+        };
+        setGpsStatus(messages[error.code] || "Erro no GPS", "error");
+        showToast("Ative a permissao de localizacao do Chrome e use HTTPS ou localhost para liberar o GPS.");
+      }
+
+      async function requestWakeLock() {
+        if (!("wakeLock" in navigator)) {
+          updateWakeStatus(false);
+          return;
+        }
+        try {
+          state.wakeLock = await navigator.wakeLock.request("screen");
+          updateWakeStatus(true);
+          state.wakeLock.addEventListener("release", () => updateWakeStatus(false));
+        } catch (error) {
+          updateWakeStatus(false);
+        }
+      }
+
+      async function enterFullscreen() {
+        try {
+          if (!document.fullscreenElement) {
+            await document.documentElement.requestFullscreen();
+          }
+          if (screen.orientation && screen.orientation.lock) {
+            await screen.orientation.lock("landscape").catch(() => {});
+          }
+        } catch (error) {
+          showToast("O Chrome exige um toque do usuario para entrar em tela cheia.");
+        }
+      }
+
+      function startGps() {
+        if (!("geolocation" in navigator)) {
+          setGpsStatus("Sem geolocalizacao", "error");
+          showToast("Este navegador nao oferece API de geolocalizacao.");
+          return;
+        }
+
+        if (!window.isSecureContext) {
+          showToast("No celular, publique no GitHub Pages com HTTPS para o GPS funcionar.");
+        }
+
+        if (state.watchId !== null) {
+          navigator.geolocation.clearWatch(state.watchId);
+        }
+
+        setGpsStatus("Buscando GPS", "idle");
+        state.gpsActive = true;
+        els.gpsButton.textContent = "■";
+        els.gpsButton.title = "Parar GPS";
+        els.gpsButton.setAttribute("aria-label", "Parar GPS");
+
+        state.watchId = navigator.geolocation.watchPosition(applyPosition, handleGpsError, {
+          enableHighAccuracy: true,
+          maximumAge: 900,
+          timeout: 12000
+        });
+      }
+
+      function stopGps() {
+        if (state.watchId !== null) {
+          navigator.geolocation.clearWatch(state.watchId);
+          state.watchId = null;
+        }
+        state.gpsActive = false;
+        els.gpsButton.textContent = "▶";
+        els.gpsButton.title = "Iniciar GPS";
+        els.gpsButton.setAttribute("aria-label", "Iniciar GPS");
+        setGpsStatus("GPS parado", "idle");
+      }
+
+      function resetTrip() {
+        state.distanceKm = 0;
+        state.maxSpeedKmh = 0;
+        state.speedSamples = [];
+        updateTelemetryUI();
+        showToast("Viagem zerada.");
+      }
+
+      function nodeKindLabel(type) {
+        return {
+          gps: "fonte",
+          filter: "processo",
+          alert: "logica",
+          display: "saida",
+          lamp: "saida"
+        }[type] || "no";
+      }
+
+      function makeNodeId(type) {
+        return `${type}-${Date.now().toString(36)}-${Math.floor(Math.random() * 999)}`;
+      }
+
+      function createNode(type) {
+        const rect = els.nodeStage.getBoundingClientRect();
+        const offset = state.nodes.length * 18;
+        const baseX = clamp(48 + offset, 20, Math.max(24, rect.width - 240));
+        const baseY = clamp(64 + offset, 20, Math.max(24, rect.height - 170));
+
+        const blueprints = {
+          gps: { title: "GPS", inputs: [], outputs: ["velocidade", "precisao", "rumo"] },
+          filter: { title: "Filtro suave", inputs: ["entrada"], outputs: ["suave"] },
+          alert: { title: "Alerta", inputs: ["kmh"], outputs: ["alto"], threshold: 80 },
+          display: { title: "Velocimetro", inputs: ["kmh"], outputs: [] },
+          lamp: { title: "Luz do painel", inputs: ["estado"], outputs: [] }
+        };
+
+        const node = {
+          id: makeNodeId(type),
+          type,
+          x: baseX,
+          y: baseY,
+          ...clone(blueprints[type])
+        };
+        state.nodes.push(node);
+        renderNodes();
+        saveLayout();
+      }
+
+      function resetLayout() {
+        state.nodes = clone(DEFAULT_NODES);
+        state.connections = clone(DEFAULT_CONNECTIONS);
+        state.connecting = null;
+        renderNodes();
+        saveLayout();
+        showToast("Nós restaurados.");
+      }
+
+      function clearConnections() {
+        state.connections = [];
+        state.connecting = null;
+        renderNodes();
+        saveLayout();
+      }
+
+      function getNode(id) {
+        return state.nodes.find((node) => node.id === id);
+      }
+
+      function renderNodes() {
+        els.nodeStage.querySelectorAll(".node").forEach((node) => node.remove());
+
+        state.nodes.forEach((node) => {
+          const element = document.createElement("article");
+          element.className = "node";
+          element.dataset.nodeId = node.id;
+          element.dataset.type = node.type;
+          element.style.transform = `translate(${node.x}px, ${node.y}px)`;
+
+          const inputs = (node.inputs || []).map((port) => portMarkup(node, port, "input")).join("");
+          const outputs = (node.outputs || []).map((port) => portMarkup(node, port, "output")).join("");
+          const inputLabels = (node.inputs || []).map((port) => `<span>${escapeHtml(port)}</span>`).join("");
+          const outputLabels = (node.outputs || []).map((port) => `<span>${escapeHtml(port)}</span>`).join("");
+
+          element.innerHTML = `
+            <div class="node-header" data-drag-handle="true">
+              <div class="node-title">${escapeHtml(node.title)}</div>
+              <div class="node-type">${nodeKindLabel(node.type)}</div>
+            </div>
+            <div class="node-body">
+              <div class="ports">${inputs}</div>
+              <div class="node-content">
+                ${nodeContentMarkup(node)}
+                <div class="node-readout">
+                  <div class="port-labels">${inputLabels}</div>
+                  <div class="port-labels" style="text-align:right">${outputLabels}</div>
+                </div>
+              </div>
+              <div class="ports">${outputs}</div>
+            </div>
+          `;
+
+          els.nodeStage.appendChild(element);
+        });
+
+        attachNodeEvents();
+        evaluateGraph();
+        updateNodeValues();
+        requestAnimationFrame(drawWires);
+      }
+
+      function escapeHtml(value) {
+        return String(value).replace(/[&<>"']/g, (char) => ({
+          "&": "&amp;",
+          "<": "&lt;",
+          ">": "&gt;",
+          "\"": "&quot;",
+          "'": "&#039;"
+        }[char]));
+      }
+
+      function portMarkup(node, port, kind) {
+        return `<button class="port" type="button" title="${kind === "output" ? "Saida" : "Entrada"}: ${escapeHtml(port)}" aria-label="${kind}: ${escapeHtml(port)}" data-node-id="${node.id}" data-port-name="${escapeHtml(port)}" data-port-kind="${kind}"></button>`;
+      }
+
+      function nodeContentMarkup(node) {
+        if (node.type === "gps") {
+          return `
+            <div class="node-readout"><span>Velocidade</span><strong data-readout="${node.id}:velocidade">0</strong></div>
+            <div class="node-readout"><span>Precisao</span><strong data-readout="${node.id}:precisao">--</strong></div>
+            <div class="node-readout"><span>Rumo</span><strong data-readout="${node.id}:rumo">--</strong></div>
+          `;
+        }
+        if (node.type === "filter") {
+          return `
+            <div class="node-readout"><span>Entrada</span><strong data-readout="${node.id}:entrada">0</strong></div>
+            <div class="node-readout ok"><span>Suave</span><strong data-readout="${node.id}:suave">0</strong></div>
+          `;
+        }
+        if (node.type === "alert") {
+          return `
+            <label class="threshold-row"><span>Limite km/h</span><input inputmode="numeric" type="number" min="1" max="320" step="1" value="${Number(node.threshold || 80)}" data-threshold="${node.id}"></label>
+            <div class="node-readout"><span>Entrada</span><strong data-readout="${node.id}:kmh">0</strong></div>
+            <div class="node-readout" data-alert-row="${node.id}"><span>Estado</span><strong data-readout="${node.id}:alto">OK</strong></div>
+          `;
+        }
+        if (node.type === "lamp") {
+          return `
+            <div class="node-readout"><span>Estado</span><strong data-readout="${node.id}:estado">OK</strong></div>
+            <div class="node-readout" data-lamp-row="${node.id}"><span>Painel</span><strong data-readout="${node.id}:painel">Verde</strong></div>
+          `;
+        }
+        return `
+          <div class="node-readout ok"><span>Entrada</span><strong data-readout="${node.id}:kmh">0</strong></div>
+          <div class="node-readout"><span>Display</span><strong data-readout="${node.id}:display">km/h</strong></div>
+        `;
+      }
+
+      function attachNodeEvents() {
+        els.nodeStage.querySelectorAll(".node-header").forEach((handle) => {
+          handle.addEventListener("pointerdown", beginDrag);
+        });
+
+        els.nodeStage.querySelectorAll(".port").forEach((port) => {
+          port.addEventListener("pointerdown", handlePortPointer);
+        });
+
+        els.nodeStage.querySelectorAll("[data-threshold]").forEach((input) => {
+          input.addEventListener("pointerdown", (event) => event.stopPropagation());
+          input.addEventListener("input", () => {
+            const node = getNode(input.dataset.threshold);
+            if (!node) return;
+            node.threshold = clamp(Number(input.value) || 1, 1, 320);
+            evaluateGraph();
+            updateNodeValues();
+            saveLayout();
+          });
+        });
+      }
+
+      function beginDrag(event) {
+        const nodeElement = event.currentTarget.closest(".node");
+        const node = getNode(nodeElement.dataset.nodeId);
+        if (!node) return;
+
+        event.preventDefault();
+        nodeElement.setPointerCapture(event.pointerId);
+        state.dragging = {
+          id: node.id,
+          pointerId: event.pointerId,
+          startX: event.clientX,
+          startY: event.clientY,
+          nodeX: node.x,
+          nodeY: node.y
+        };
+
+        nodeElement.addEventListener("pointermove", moveDrag);
+        nodeElement.addEventListener("pointerup", endDrag);
+        nodeElement.addEventListener("pointercancel", endDrag);
+      }
+
+      function moveDrag(event) {
+        if (!state.dragging || state.dragging.pointerId !== event.pointerId) return;
+        const node = getNode(state.dragging.id);
+        const nodeElement = els.nodeStage.querySelector(`.node[data-node-id="${CSS.escape(state.dragging.id)}"]`);
+        const stageRect = els.nodeStage.getBoundingClientRect();
+        if (!node || !nodeElement) return;
+
+        const nextX = clamp(state.dragging.nodeX + event.clientX - state.dragging.startX, 0, Math.max(0, stageRect.width - nodeElement.offsetWidth));
+        const nextY = clamp(state.dragging.nodeY + event.clientY - state.dragging.startY, 0, Math.max(0, stageRect.height - nodeElement.offsetHeight));
+        node.x = nextX;
+        node.y = nextY;
+        nodeElement.style.transform = `translate(${nextX}px, ${nextY}px)`;
+        drawWires();
+      }
+
+      function endDrag(event) {
+        if (!state.dragging || state.dragging.pointerId !== event.pointerId) return;
+        const nodeElement = event.currentTarget;
+        nodeElement.releasePointerCapture(event.pointerId);
+        nodeElement.removeEventListener("pointermove", moveDrag);
+        nodeElement.removeEventListener("pointerup", endDrag);
+        nodeElement.removeEventListener("pointercancel", endDrag);
+        state.dragging = null;
+        saveLayout();
+      }
+
+      function handlePortPointer(event) {
+        event.preventDefault();
+        event.stopPropagation();
+        const port = event.currentTarget;
+        const kind = port.dataset.portKind;
+        const nodeId = port.dataset.nodeId;
+        const portName = port.dataset.portName;
+
+        if (kind === "output") {
+          state.connecting = { fromNode: nodeId, fromPort: portName };
+          state.pointer = { x: event.clientX, y: event.clientY };
+          refreshPortHighlights();
+          drawWires();
+          return;
+        }
+
+        if (kind === "input" && state.connecting) {
+          const duplicate = state.connecting.fromNode === nodeId;
+          if (!duplicate) {
+            state.connections = state.connections.filter((connection) => !(connection.toNode === nodeId && connection.toPort === portName));
+            state.connections.push({
+              fromNode: state.connecting.fromNode,
+              fromPort: state.connecting.fromPort,
+              toNode: nodeId,
+              toPort: portName
+            });
+            saveLayout();
+          }
+          state.connecting = null;
+          state.pointer = null;
+          refreshPortHighlights();
+          evaluateGraph();
+          updateNodeValues();
+          drawWires();
+        }
+      }
+
+      function refreshPortHighlights() {
+        els.nodeStage.querySelectorAll(".port").forEach((port) => {
+          const selected = state.connecting
+            && port.dataset.portKind === "output"
+            && port.dataset.nodeId === state.connecting.fromNode
+            && port.dataset.portName === state.connecting.fromPort;
+          const compatible = state.connecting
+            && port.dataset.portKind === "input"
+            && port.dataset.nodeId !== state.connecting.fromNode;
+          port.classList.toggle("selected", Boolean(selected));
+          port.classList.toggle("compatible", Boolean(compatible));
+        });
+      }
+
+      function syncCanvas() {
+        const canvas = els.wireCanvas;
+        const rect = els.nodeStage.getBoundingClientRect();
+        const dpr = window.devicePixelRatio || 1;
+        const width = Math.max(1, Math.floor(rect.width * dpr));
+        const height = Math.max(1, Math.floor(rect.height * dpr));
+
+        if (canvas.width !== width || canvas.height !== height) {
+          canvas.width = width;
+          canvas.height = height;
+        }
+
+        const ctx = canvas.getContext("2d");
+        ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+        return { ctx, rect };
+      }
+
+      function getPortCenter(nodeId, portName, kind) {
+        const selector = `.port[data-node-id="${CSS.escape(nodeId)}"][data-port-name="${CSS.escape(portName)}"][data-port-kind="${kind}"]`;
+        const port = els.nodeStage.querySelector(selector);
+        if (!port) return null;
+        const portRect = port.getBoundingClientRect();
+        const stageRect = els.nodeStage.getBoundingClientRect();
+        return {
+          x: portRect.left + portRect.width / 2 - stageRect.left,
+          y: portRect.top + portRect.height / 2 - stageRect.top
+        };
+      }
+
+      function drawCurve(ctx, from, to, color, width = 3) {
+        const distance = Math.max(70, Math.abs(to.x - from.x) * 0.45);
+        ctx.beginPath();
+        ctx.moveTo(from.x, from.y);
+        ctx.bezierCurveTo(from.x + distance, from.y, to.x - distance, to.y, to.x, to.y);
+        ctx.lineWidth = width;
+        ctx.strokeStyle = "rgba(0, 0, 0, 0.46)";
+        ctx.stroke();
+        ctx.lineWidth = Math.max(1, width - 1);
+        ctx.strokeStyle = color;
+        ctx.stroke();
+      }
+
+      function drawWires() {
+        const { ctx, rect } = syncCanvas();
+        ctx.clearRect(0, 0, rect.width, rect.height);
+
+        state.connections.forEach((connection) => {
+          const from = getPortCenter(connection.fromNode, connection.fromPort, "output");
+          const to = getPortCenter(connection.toNode, connection.toPort, "input");
+          if (!from || !to) return;
+          drawCurve(ctx, from, to, "rgba(53, 213, 255, 0.88)", 4);
+        });
+
+        if (state.connecting && state.pointer) {
+          const from = getPortCenter(state.connecting.fromNode, state.connecting.fromPort, "output");
+          if (from) {
+            drawCurve(ctx, from, {
+              x: state.pointer.x - rect.left,
+              y: state.pointer.y - rect.top
+            }, "rgba(255, 198, 83, 0.86)", 3);
+          }
+        }
+      }
+
+      function readOutput(node, inputs) {
+        if (node.type === "gps") {
+          return {
+            velocidade: state.smoothedSpeedKmh,
+            precisao: state.accuracy,
+            rumo: state.heading
+          };
+        }
+        if (node.type === "filter") {
+          const value = Number(inputs.entrada || 0);
+          return { suave: value * 0.72 + state.smoothedSpeedKmh * 0.28 };
+        }
+        if (node.type === "alert") {
+          return { alto: Number(inputs.kmh || 0) >= Number(node.threshold || 80) };
+        }
+        return {};
+      }
+
+      function evaluateGraph() {
+        const inputs = {};
+        const outputs = {};
+        state.nodes.forEach((node) => {
+          inputs[node.id] = {};
+          outputs[node.id] = {};
+        });
+
+        for (let pass = 0; pass < 5; pass += 1) {
+          state.nodes.forEach((node) => {
+            outputs[node.id] = readOutput(node, inputs[node.id] || {});
+          });
+          state.connections.forEach((connection) => {
+            const value = outputs[connection.fromNode]?.[connection.fromPort];
+            if (!inputs[connection.toNode]) inputs[connection.toNode] = {};
+            inputs[connection.toNode][connection.toPort] = value;
+          });
+        }
+
+        state.graphInputs = inputs;
+        state.graphOutputs = outputs;
+      }
+
+      function setReadout(nodeId, key, value, options = {}) {
+        const element = els.nodeStage.querySelector(`[data-readout="${CSS.escape(`${nodeId}:${key}`)}"]`);
+        if (!element) return;
+        element.textContent = value;
+        if (options.hot != null) {
+          const row = element.closest(".node-readout");
+          if (row) row.classList.toggle("hot", Boolean(options.hot));
+        }
+      }
+
+      function updateNodeValues() {
+        state.nodes.forEach((node) => {
+          const inputs = state.graphInputs[node.id] || {};
+          const outputs = state.graphOutputs[node.id] || {};
+
+          if (node.type === "gps") {
+            setReadout(node.id, "velocidade", `${formatNumber(outputs.velocidade || 0)} km/h`);
+            setReadout(node.id, "precisao", Number.isFinite(outputs.precisao) ? `${formatNumber(outputs.precisao)} m` : "--");
+            setReadout(node.id, "rumo", Number.isFinite(outputs.rumo) ? `${formatNumber(outputs.rumo)}°` : "--");
+          } else if (node.type === "filter") {
+            setReadout(node.id, "entrada", `${formatNumber(inputs.entrada || 0)} km/h`);
+            setReadout(node.id, "suave", `${formatNumber(outputs.suave || 0)} km/h`);
+          } else if (node.type === "alert") {
+            const hot = Boolean(outputs.alto);
+            setReadout(node.id, "kmh", `${formatNumber(inputs.kmh || 0)} km/h`);
+            setReadout(node.id, "alto", hot ? "ALTO" : "OK", { hot });
+          } else if (node.type === "lamp") {
+            const hot = Boolean(inputs.estado);
+            setReadout(node.id, "estado", hot ? "ALTO" : "OK", { hot });
+            setReadout(node.id, "painel", hot ? "Vermelho" : "Verde", { hot });
+            document.documentElement.style.setProperty("--green", hot ? "#ff4c6a" : "#6dff90");
+          } else if (node.type === "display") {
+            setReadout(node.id, "kmh", `${formatNumber(inputs.kmh || 0)} km/h`);
+            setReadout(node.id, "display", "km/h");
+          }
+        });
+      }
+
+      function handleStagePointerMove(event) {
+        if (!state.connecting) return;
+        state.pointer = { x: event.clientX, y: event.clientY };
+        drawWires();
+      }
+
+      function cancelConnection(event) {
+        if (!state.connecting) return;
+        if (event.target.classList && event.target.classList.contains("port")) return;
+        state.connecting = null;
+        state.pointer = null;
+        refreshPortHighlights();
+        drawWires();
+      }
+
+      function bindEvents() {
+        els.gpsButton.addEventListener("click", async () => {
+          await requestWakeLock();
+          if (state.gpsActive) stopGps();
+          else startGps();
+        });
+
+        els.fullscreenButton.addEventListener("click", async () => {
+          await requestWakeLock();
+          await enterFullscreen();
+        });
+
+        els.resetTripButton.addEventListener("click", resetTrip);
+        els.addGpsNode.addEventListener("click", () => createNode("gps"));
+        els.addFilterNode.addEventListener("click", () => createNode("filter"));
+        els.addAlertNode.addEventListener("click", () => createNode("alert"));
+        els.addDisplayNode.addEventListener("click", () => createNode("display"));
+        els.clearConnectionsButton.addEventListener("click", clearConnections);
+        els.resetLayoutButton.addEventListener("click", resetLayout);
+
+        els.nodeStage.addEventListener("pointermove", handleStagePointerMove);
+        els.nodeStage.addEventListener("pointerdown", cancelConnection);
+        window.addEventListener("resize", () => {
+          constrainNodesToStage();
+          renderNodes();
+        });
+        document.addEventListener("visibilitychange", () => {
+          if (document.visibilityState === "visible" && state.wakeLock === null) requestWakeLock();
+        });
+      }
+
+      function constrainNodesToStage() {
+        const stageRect = els.nodeStage.getBoundingClientRect();
+        state.nodes.forEach((node) => {
+          node.x = clamp(node.x, 0, Math.max(0, stageRect.width - 216));
+          node.y = clamp(node.y, 0, Math.max(0, stageRect.height - 132));
+        });
+      }
+
+      function boot() {
+        restoreLayout();
+        updateSecureStatus();
+        updateWakeStatus(false);
+        bindEvents();
+        constrainNodesToStage();
+        renderNodes();
+        updateTelemetryUI();
+      }
+
+      boot();
+    })();
   </script>
 </body>
 </html>
